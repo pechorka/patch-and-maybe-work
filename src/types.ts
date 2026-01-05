@@ -60,6 +60,7 @@ export interface AppState {
   gameState: GameState | null;
   placementState: PlacementState | null;
   selectedBoardSize: BoardSize;
+  playerNames: [string, string];
 }
 
 export interface Button {

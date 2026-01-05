@@ -32,3 +32,7 @@ The app uses a simple state machine with four screens:
 - **Button hit detection**: Renderer populates `buttons` array each frame; input module checks against it
 - **Patch shapes**: 2D boolean arrays where `true` = filled cell. Rotation creates new arrays
 - **Board state**: `(number | null)[][]` where `null` = empty, number = patch ID
+
+## Code Style
+
+- Always log errors with `console.error()` - never silently ignore them in catch blocks

@@ -3,6 +3,7 @@ import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead }
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
 import { initRenderer, render } from './renderer';
+import { loadPlayerNames, savePlayerNames } from './storage';
 
 // App state
 const state: AppState = {
@@ -10,6 +11,7 @@ const state: AppState = {
   gameState: null,
   placementState: null,
   selectedBoardSize: 9,
+  playerNames: loadPlayerNames(),
 };
 
 function handleAction(action: string): void {
@@ -20,8 +22,19 @@ function handleAction(action: string): void {
       state.selectedBoardSize = parseInt(arg) as BoardSize;
       break;
 
+    case 'editName': {
+      const playerIdx = parseInt(arg) as 0 | 1;
+      const currentName = state.playerNames[playerIdx];
+      const newName = prompt(`Enter name for Player ${playerIdx + 1}:`, currentName);
+      if (newName !== null && newName.trim() !== '') {
+        state.playerNames[playerIdx] = newName.trim().slice(0, 20);
+        savePlayerNames(state.playerNames);
+      }
+      break;
+    }
+
     case 'startGame':
-      state.gameState = createGameState(state.selectedBoardSize);
+      state.gameState = createGameState(state.selectedBoardSize, state.playerNames);
       state.screen = 'game';
       break;
 

@@ -82,11 +82,44 @@ function renderSetupScreen(state: AppState): void {
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 48px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('PATCHWORK', centerX, height * 0.25);
+  ctx.fillText('PATCHWORK', centerX, height * 0.18);
+
+  // Players label
+  ctx.font = '24px sans-serif';
+  ctx.fillText('Players:', centerX, height * 0.30);
+
+  // Player name buttons
+  const nameButtonWidth = 160;
+  const nameButtonHeight = 40;
+  const nameGap = 20;
+  const totalNameWidth = 2 * nameButtonWidth + nameGap;
+  const nameStartX = centerX - totalNameWidth / 2;
+  const nameY = height * 0.34;
+
+  for (let i = 0; i < 2; i++) {
+    const x = nameStartX + i * (nameButtonWidth + nameGap);
+
+    ctx.fillStyle = COLORS.panel;
+    ctx.fillRect(x, nameY, nameButtonWidth, nameButtonHeight);
+
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    const displayName = state.playerNames[i].length > 12
+      ? state.playerNames[i].slice(0, 12) + '...'
+      : state.playerNames[i];
+    ctx.fillText(displayName, x + nameButtonWidth / 2, nameY + nameButtonHeight / 2 + 6);
+
+    buttons.push({
+      x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
+      label: state.playerNames[i],
+      action: `editName:${i}`,
+    });
+  }
 
   // Board size label
   ctx.font = '24px sans-serif';
-  ctx.fillText('Board Size:', centerX, height * 0.4);
+  ctx.fillText('Board Size:', centerX, height * 0.48);
 
   // Board size buttons
   const sizes: BoardSize[] = [7, 9, 11];
@@ -98,7 +131,7 @@ function renderSetupScreen(state: AppState): void {
 
   sizes.forEach((size, i) => {
     const x = startX + i * (buttonWidth + gap);
-    const y = height * 0.45;
+    const y = height * 0.52;
     const isSelected = state.selectedBoardSize === size;
 
     ctx.fillStyle = isSelected ? COLORS.panelActive : COLORS.panel;
@@ -120,7 +153,7 @@ function renderSetupScreen(state: AppState): void {
   const startBtnWidth = 200;
   const startBtnHeight = 60;
   const startBtnX = centerX - startBtnWidth / 2;
-  const startBtnY = height * 0.6;
+  const startBtnY = height * 0.66;
 
   ctx.fillStyle = COLORS.button;
   ctx.fillRect(startBtnX, startBtnY, startBtnWidth, startBtnHeight);

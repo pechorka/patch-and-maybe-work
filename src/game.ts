@@ -3,7 +3,7 @@ import { PATCH_DEFINITIONS, reflectPatch, rotatePatch } from './patches';
 
 const STARTING_BUTTONS = 5;
 
-export function createGameState(boardSize: BoardSize): GameState {
+export function createGameState(boardSize: BoardSize, playerNames: [string, string]): GameState {
   const timeTrackLength = getTimeTrackLength(boardSize);
   const incomePositions = getIncomePositions(boardSize);
 
@@ -13,8 +13,8 @@ export function createGameState(boardSize: BoardSize): GameState {
   return {
     boardSize,
     players: [
-      createPlayer('Player 1', boardSize),
-      createPlayer('Player 2', boardSize),
+      createPlayer(playerNames[0], boardSize),
+      createPlayer(playerNames[1], boardSize),
     ],
     patches,
     marketPosition: 0,
