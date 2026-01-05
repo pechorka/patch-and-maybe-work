@@ -8,7 +8,6 @@ const COLORS = {
   panel: '#34495e',
   panelActive: '#3498db',
   text: '#ecf0f1',
-  textDim: '#95a5a6',
   button: '#27ae60',
   buttonDisabled: '#7f8c8d',
   boardBg: '#1a252f',
@@ -205,7 +204,7 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
     ctx.fillText(player.name, centerX, 18);
     ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, 38);
 
-    ctx.fillStyle = COLORS.textDim;
+    ctx.fillStyle = COLORS.text;
     ctx.font = '12px sans-serif';
 
     // Income info
@@ -504,7 +503,7 @@ function renderGameEndScreen(state: AppState): void {
     ctx.fillText(`${player.name}: ${score} points`, centerX, yPos);
 
     ctx.font = '16px sans-serif';
-    ctx.fillStyle = COLORS.textDim;
+    ctx.fillStyle = COLORS.text;
 
     const emptySpaces = countEmptySpaces(player.board);
     ctx.fillText(`(${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, yPos + 30);
