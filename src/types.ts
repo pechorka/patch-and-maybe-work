@@ -2,6 +2,17 @@ export type BoardSize = 7 | 9 | 11;
 
 export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd';
 
+export interface PatchVariant {
+  buttonCost: number;
+  timeCost: number;
+  buttonIncome: number;
+}
+
+export interface PatchDefinition {
+  shape: boolean[][];  // 2D array where true = filled cell
+  variants: PatchVariant[];
+}
+
 export interface Patch {
   id: number;
   shape: boolean[][];  // 2D array where true = filled cell

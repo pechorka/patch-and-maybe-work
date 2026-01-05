@@ -1,163 +1,199 @@
-import type { Patch } from './types';
+import type { Patch, PatchDefinition } from './types';
 
 // Each shape is a 2D boolean array
 // true = filled, false = empty
-export const PATCH_DEFINITIONS: Patch[] = [
-  // 1x1 single square
+// Small shapes (<5 cells) have 2 variants, big shapes (>=5 cells) have 1 variant
+export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
+  // 1x1 single square (1 cell) - 2 variants
   {
-    id: 1,
     shape: [[true]],
-    buttonCost: 1,
-    timeCost: 1,
-    buttonIncome: 0,
+    variants: [
+      { buttonCost: 1, timeCost: 1, buttonIncome: 0 },
+      { buttonCost: 2, timeCost: 2, buttonIncome: 1 },
+    ],
   },
-  // 2x1 horizontal
+  // 2x1 horizontal (2 cells) - 2 variants
   {
-    id: 2,
     shape: [[true, true]],
-    buttonCost: 2,
-    timeCost: 1,
-    buttonIncome: 0,
+    variants: [
+      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
+      { buttonCost: 3, timeCost: 2, buttonIncome: 1 },
+    ],
   },
-  // 3x1 horizontal
+  // 3x1 horizontal (3 cells) - 2 variants
   {
-    id: 3,
     shape: [[true, true, true]],
-    buttonCost: 2,
-    timeCost: 2,
-    buttonIncome: 0,
+    variants: [
+      { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
+      { buttonCost: 4, timeCost: 3, buttonIncome: 1 },
+    ],
   },
-  // 4x1 horizontal
+  // 4x1 horizontal (4 cells) - 2 variants
   {
-    id: 4,
     shape: [[true, true, true, true]],
-    buttonCost: 3,
-    timeCost: 3,
-    buttonIncome: 1,
+    variants: [
+      { buttonCost: 3, timeCost: 3, buttonIncome: 1 },
+      { buttonCost: 5, timeCost: 4, buttonIncome: 2 },
+    ],
   },
-  // 2x2 square
+  // 2x2 square (4 cells) - 2 variants
   {
-    id: 5,
     shape: [
       [true, true],
       [true, true],
     ],
-    buttonCost: 4,
-    timeCost: 2,
-    buttonIncome: 1,
+    variants: [
+      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+      { buttonCost: 6, timeCost: 3, buttonIncome: 2 },
+    ],
   },
-  // L-shape
+  // L-shape (4 cells) - 2 variants
   {
-    id: 6,
     shape: [
       [true, false],
       [true, false],
       [true, true],
     ],
-    buttonCost: 3,
-    timeCost: 2,
-    buttonIncome: 0,
+    variants: [
+      { buttonCost: 3, timeCost: 2, buttonIncome: 0 },
+      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
+    ],
   },
-  // T-shape
+  // T-shape (4 cells) - 2 variants
   {
-    id: 7,
     shape: [
       [true, true, true],
       [false, true, false],
     ],
-    buttonCost: 4,
-    timeCost: 2,
-    buttonIncome: 1,
+    variants: [
+      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+      { buttonCost: 2, timeCost: 3, buttonIncome: 0 },
+    ],
   },
-  // S-shape
+  // S-shape (4 cells) - 2 variants (Z-shape removed as it's a reflection)
   {
-    id: 8,
     shape: [
       [false, true, true],
       [true, true, false],
     ],
-    buttonCost: 3,
-    timeCost: 2,
-    buttonIncome: 0,
-  },
-  // Z-shape
-  {
-    id: 9,
-    shape: [
-      [true, true, false],
-      [false, true, true],
+    variants: [
+      { buttonCost: 3, timeCost: 2, buttonIncome: 0 },
+      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
     ],
-    buttonCost: 3,
-    timeCost: 2,
-    buttonIncome: 0,
   },
-  // Plus shape
+  // Corner (3 cells) - 2 variants
   {
-    id: 10,
+    shape: [
+      [true, true],
+      [true, false],
+    ],
+    variants: [
+      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
+      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+    ],
+  },
+  // Plus shape (5 cells) - 1 variant
+  {
     shape: [
       [false, true, false],
       [true, true, true],
       [false, true, false],
     ],
-    buttonCost: 5,
-    timeCost: 3,
-    buttonIncome: 2,
+    variants: [
+      { buttonCost: 5, timeCost: 3, buttonIncome: 2 },
+    ],
   },
-  // Large L
+  // Large L (5 cells) - 1 variant
   {
-    id: 11,
     shape: [
       [true, false, false],
       [true, false, false],
       [true, true, true],
     ],
-    buttonCost: 5,
-    timeCost: 3,
-    buttonIncome: 1,
+    variants: [
+      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
+    ],
   },
-  // U-shape
+  // U-shape (5 cells) - 1 variant
   {
-    id: 12,
     shape: [
       [true, false, true],
       [true, true, true],
     ],
-    buttonCost: 4,
-    timeCost: 2,
-    buttonIncome: 1,
-  },
-  // Corner
-  {
-    id: 13,
-    shape: [
-      [true, true],
-      [true, false],
+    variants: [
+      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
     ],
-    buttonCost: 2,
-    timeCost: 1,
-    buttonIncome: 0,
   },
-  // Small T
+  // Small T (5 cells) - 1 variant
   {
-    id: 14,
     shape: [
       [true, true, true],
       [false, true, false],
       [false, true, false],
     ],
-    buttonCost: 5,
-    timeCost: 3,
-    buttonIncome: 2,
+    variants: [
+      { buttonCost: 5, timeCost: 3, buttonIncome: 2 },
+    ],
   },
-  // 5-block line
+  // 5-block line (5 cells) - 1 variant
   {
-    id: 15,
     shape: [[true, true, true, true, true]],
-    buttonCost: 4,
-    timeCost: 4,
-    buttonIncome: 2,
+    variants: [
+      { buttonCost: 4, timeCost: 4, buttonIncome: 2 },
+    ],
   },
 ];
+
+function shapeToString(shape: boolean[][]): string {
+  return shape.map(row => row.map(cell => cell ? '1' : '0').join('')).join('|');
+}
+
+function variantToString(v: { buttonCost: number; timeCost: number; buttonIncome: number }): string {
+  return `${v.buttonCost}:${v.timeCost}:${v.buttonIncome}`;
+}
+
+// Generate all patches from definitions
+export function createPatchesFromDefinitions(definitions: PatchDefinition[]): Patch[] {
+  // Validate all shapes are unique and variants within each shape are unique
+  const seenShapes = new Set<string>();
+  for (const definition of definitions) {
+    const shapeKey = shapeToString(definition.shape);
+    if (seenShapes.has(shapeKey)) {
+      throw new Error(`Duplicate shape found in PATCH_SHAPE_DEFINITIONS: ${shapeKey}`);
+    }
+
+    const seenVariants = new Set<string>();
+    for (const variant of definition.variants) {
+      const variantKey = variantToString(variant);
+      if (seenVariants.has(variantKey)) {
+        throw new Error(`Duplicate variant found for shape ${shapeKey}: ${variantKey}`);
+      }
+      seenVariants.add(variantKey);
+    }
+
+    seenShapes.add(shapeKey);
+  }
+
+  const patches: Patch[] = [];
+  let id = 1;
+
+  for (const definition of PATCH_SHAPE_DEFINITIONS) {
+    for (const variant of definition.variants) {
+      patches.push({
+        id: id++,
+        shape: definition.shape,
+        buttonCost: variant.buttonCost,
+        timeCost: variant.timeCost,
+        buttonIncome: variant.buttonIncome,
+      });
+    }
+  }
+
+  return patches;
+}
+
+// Keep PATCH_DEFINITIONS for backwards compatibility
+export const PATCH_DEFINITIONS: Patch[] = createPatchesFromDefinitions(PATCH_SHAPE_DEFINITIONS);
 
 export function rotatePatch(shape: boolean[][], times: number): boolean[][] {
   let result = shape;
