@@ -196,7 +196,7 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
 
     const centerX = x + panelWidth / 2;
     ctx.fillText(player.name, centerX, 25);
-    ctx.fillText(`Buttons: ${player.buttons}`, centerX, 50);
+    ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, 50);
     ctx.fillStyle = COLORS.textDim;
     ctx.font = '14px sans-serif';
     ctx.fillText(`+${player.income}/turn`, centerX, 70);
