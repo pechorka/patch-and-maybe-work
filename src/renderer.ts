@@ -1,6 +1,6 @@
 import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
-import { rotatePatch } from './patches';
+import { reflectPatch, rotatePatch } from './patches';
 
 // Colors
 const COLORS = {
@@ -269,7 +269,10 @@ function renderBoard(player: Player, x: number, y: number, size: number): void {
 
   // Draw placed patches with button indicators
   for (const placed of player.placedPatches) {
-    const shape = rotatePatch(placed.patch.shape, placed.rotation);
+    let shape = rotatePatch(placed.patch.shape, placed.rotation);
+    if (placed.reflected) {
+      shape = reflectPatch(shape);
+    }
     const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
 
     // Draw patch cells
@@ -367,7 +370,10 @@ function renderPlacementScreen(state: AppState): void {
   buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: 'cancelPlacement' });
 
   // Confirm button
-  const shape = rotatePatch(patch.shape, placement.rotation);
+  let shape = rotatePatch(patch.shape, placement.rotation);
+  if (placement.reflected) {
+    shape = reflectPatch(shape);
+  }
   const canPlace = canPlacePatch(player.board, shape, placement.x, placement.y);
 
   ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
@@ -389,13 +395,14 @@ function renderPlacementScreen(state: AppState): void {
   const controlY = boardTop + boardSize + 20;
   const controlBtnSize = 60;
   const controlGap = 10;
-  const controlsWidth = controlBtnSize * 5 + controlGap * 4;
+  const controlsWidth = controlBtnSize * 6 + controlGap * 5;
   const controlsStartX = (width - controlsWidth) / 2;
 
   const controls = [
     { label: '<', action: 'moveLeft' },
     { label: '^', action: 'moveUp' },
     { label: 'R', action: 'rotate' },
+    { label: 'F', action: 'reflect' },
     { label: 'v', action: 'moveDown' },
     { label: '>', action: 'moveRight' },
   ];
@@ -438,7 +445,10 @@ function renderBoardWithGhost(
 
   // Draw placed patches with button indicators
   for (const placed of player.placedPatches) {
-    const placedShape = rotatePatch(placed.patch.shape, placed.rotation);
+    let placedShape = rotatePatch(placed.patch.shape, placed.rotation);
+    if (placed.reflected) {
+      placedShape = reflectPatch(placedShape);
+    }
     const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
 
     ctx.fillStyle = patchColor;
@@ -456,7 +466,10 @@ function renderBoardWithGhost(
   }
 
   // Draw ghost patch
-  const ghostShape = rotatePatch(patch.shape, placement.rotation);
+  let ghostShape = rotatePatch(patch.shape, placement.rotation);
+  if (placement.reflected) {
+    ghostShape = reflectPatch(ghostShape);
+  }
   ctx.fillStyle = canPlace ? COLORS.ghostValid : COLORS.ghostInvalid;
 
   for (let row = 0; row < ghostShape.length; row++) {

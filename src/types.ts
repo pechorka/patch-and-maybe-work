@@ -15,6 +15,7 @@ export interface PlacedPatch {
   x: number;
   y: number;
   rotation: number;
+  reflected: boolean;
 }
 
 export interface Player {
@@ -31,6 +32,7 @@ export interface PlacementState {
   x: number;
   y: number;
   rotation: number;  // 0, 90, 180, 270
+  reflected: boolean;
 }
 
 export interface GameState {

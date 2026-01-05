@@ -1,7 +1,7 @@
 import type { AppState, BoardSize } from './types';
 import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
-import { rotatePatch } from './patches';
+import { reflectPatch, rotatePatch } from './patches';
 import { initRenderer, render } from './renderer';
 
 // App state
@@ -42,6 +42,7 @@ function handleAction(action: string): void {
             x,
             y,
             rotation: 0,
+            reflected: false,
           };
           state.screen = 'placement';
         }
@@ -67,7 +68,8 @@ function handleAction(action: string): void {
           state.placementState.patchIndex,
           state.placementState.x,
           state.placementState.y,
-          state.placementState.rotation
+          state.placementState.rotation,
+          state.placementState.reflected
         );
         if (success) {
           state.placementState = null;
@@ -109,6 +111,12 @@ function handleAction(action: string): void {
       }
       break;
 
+    case 'reflect':
+      if (state.placementState) {
+        state.placementState.reflected = !state.placementState.reflected;
+      }
+      break;
+
     case 'playAgain':
       state.gameState = null;
       state.placementState = null;
@@ -119,16 +127,20 @@ function handleAction(action: string): void {
   render(state);
 }
 
-function getRotatedShape(): boolean[][] {
+function getTransformedShape(): boolean[][] {
   if (!state.gameState || !state.placementState) return [[]];
   const patches = getAvailablePatches(state.gameState);
   const patch = patches[state.placementState.patchIndex];
   if (!patch) return [[]];
-  return rotatePatch(patch.shape, state.placementState.rotation);
+  let shape = rotatePatch(patch.shape, state.placementState.rotation);
+  if (state.placementState.reflected) {
+    shape = reflectPatch(shape);
+  }
+  return shape;
 }
 
 function getMaxNegativeX(): number {
-  const shape = getRotatedShape();
+  const shape = getTransformedShape();
   // Find leftmost filled column
   for (let col = 0; col < shape[0].length; col++) {
     for (let row = 0; row < shape.length; row++) {
@@ -139,7 +151,7 @@ function getMaxNegativeX(): number {
 }
 
 function getMaxNegativeY(): number {
-  const shape = getRotatedShape();
+  const shape = getTransformedShape();
   // Find topmost filled row
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {

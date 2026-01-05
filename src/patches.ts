@@ -167,6 +167,10 @@ export function rotatePatch(shape: boolean[][], times: number): boolean[][] {
   return result;
 }
 
+export function reflectPatch(shape: boolean[][]): boolean[][] {
+  return shape.map(row => [...row].reverse());
+}
+
 function rotateOnce(shape: boolean[][]): boolean[][] {
   const rows = shape.length;
   const cols = shape[0].length;

@@ -1,5 +1,5 @@
 import type { BoardSize, GameState, Patch, Player } from './types';
-import { PATCH_DEFINITIONS, rotatePatch } from './patches';
+import { PATCH_DEFINITIONS, reflectPatch, rotatePatch } from './patches';
 
 const STARTING_BUTTONS = 5;
 
@@ -148,9 +148,13 @@ export function placePatchOnBoard(
   patch: Patch,
   x: number,
   y: number,
-  rotation: number
+  rotation: number,
+  reflected: boolean
 ): void {
-  const shape = rotatePatch(patch.shape, rotation);
+  let shape = rotatePatch(patch.shape, rotation);
+  if (reflected) {
+    shape = reflectPatch(shape);
+  }
 
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
@@ -160,7 +164,7 @@ export function placePatchOnBoard(
     }
   }
 
-  player.placedPatches.push({ patch, x, y, rotation });
+  player.placedPatches.push({ patch, x, y, rotation, reflected });
 }
 
 export function buyPatch(
@@ -168,7 +172,8 @@ export function buyPatch(
   patchIndex: number,
   x: number,
   y: number,
-  rotation: number
+  rotation: number,
+  reflected: boolean
 ): boolean {
   const patches = getAvailablePatches(state);
   const patch = patches[patchIndex];
@@ -179,7 +184,10 @@ export function buyPatch(
 
   if (player.buttons < patch.buttonCost) return false;
 
-  const shape = rotatePatch(patch.shape, rotation);
+  let shape = rotatePatch(patch.shape, rotation);
+  if (reflected) {
+    shape = reflectPatch(shape);
+  }
   if (!canPlacePatch(player.board, shape, x, y)) return false;
 
   // Deduct buttons
@@ -192,7 +200,7 @@ export function buyPatch(
   movePlayer(state, playerIndex, patch.timeCost);
 
   // Place patch on board
-  placePatchOnBoard(player, patch, x, y, rotation);
+  placePatchOnBoard(player, patch, x, y, rotation, reflected);
 
   // Remove patch from market and advance market position
   const actualIndex = (state.marketPosition + patchIndex) % state.patches.length;
