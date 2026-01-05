@@ -32,6 +32,7 @@ function createPlayer(name: string, boardSize: BoardSize): Player {
     income: 0,
     position: 0,
     board,
+    placedPatches: [],
   };
 }
 
@@ -116,7 +117,7 @@ export function canPlacePatch(
 }
 
 export function placePatchOnBoard(
-  board: (number | null)[][],
+  player: Player,
   patch: Patch,
   x: number,
   y: number,
@@ -127,10 +128,12 @@ export function placePatchOnBoard(
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
       if (shape[row][col]) {
-        board[y + row][x + col] = patch.id;
+        player.board[y + row][x + col] = patch.id;
       }
     }
   }
+
+  player.placedPatches.push({ patch, x, y, rotation });
 }
 
 export function buyPatch(
@@ -162,7 +165,7 @@ export function buyPatch(
   player.position = Math.min(player.position + patch.timeCost, state.timeTrackLength);
 
   // Place patch on board
-  placePatchOnBoard(player.board, patch, x, y, rotation);
+  placePatchOnBoard(player, patch, x, y, rotation);
 
   // Remove patch from market and advance market position
   const actualIndex = (state.marketPosition + patchIndex) % state.patches.length;

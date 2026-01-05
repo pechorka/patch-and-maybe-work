@@ -10,12 +10,20 @@ export interface Patch {
   buttonIncome: number;
 }
 
+export interface PlacedPatch {
+  patch: Patch;
+  x: number;
+  y: number;
+  rotation: number;
+}
+
 export interface Player {
   name: string;
   buttons: number;
   income: number;
   position: number;  // Position on time track
-  board: (number | null)[][];  // null = empty, number = patch id
+  board: (number | null)[][];  // null = empty, number = patch id (for collision)
+  placedPatches: PlacedPatch[];  // For rendering with full context
 }
 
 export interface PlacementState {

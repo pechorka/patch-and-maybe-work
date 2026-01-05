@@ -1,4 +1,4 @@
-import type { AppState, BoardSize, Button, GameState, Patch, PlacementState } from './types';
+import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getWinner } from './game';
 import { rotatePatch } from './patches';
 
@@ -13,6 +13,7 @@ const COLORS = {
   buttonDisabled: '#7f8c8d',
   boardBg: '#1a252f',
   boardGrid: '#2c3e50',
+  buttonIndicator: '#3498db',
   patchColors: [
     '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
     '#3498db', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
@@ -151,7 +152,7 @@ function renderGameScreen(state: AppState): void {
   const boardSize = Math.min(width - 40, height - panelHeight - 220);
   const boardLeft = (width - boardSize) / 2;
 
-  renderBoard(game.players[currentPlayerIdx].board, boardLeft, boardTop, boardSize);
+  renderBoard(game.players[currentPlayerIdx], boardLeft, boardTop, boardSize);
 
   // Available patches
   const patchesTop = boardTop + boardSize + 20;
@@ -202,30 +203,75 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
   }
 }
 
-function renderBoard(board: (number | null)[][], x: number, y: number, size: number): void {
-  const boardSize = board.length;
+function getFilledCells(shape: boolean[][]): {row: number, col: number}[] {
+  const cells: {row: number, col: number}[] = [];
+  for (let row = 0; row < shape.length; row++) {
+    for (let col = 0; col < shape[row].length; col++) {
+      if (shape[row][col]) cells.push({row, col});
+    }
+  }
+  return cells;
+}
+
+function drawButtonIndicators(
+  shape: boolean[][],
+  buttonIncome: number,
+  startX: number,
+  startY: number,
+  cellSize: number
+): void {
+  if (buttonIncome === 0) return;
+  const cells = getFilledCells(shape);
+  const indicatorCells = cells.slice(0, buttonIncome);
+
+  ctx.fillStyle = COLORS.buttonIndicator;
+  for (const {row, col} of indicatorCells) {
+    const cx = startX + col * cellSize + cellSize / 2;
+    const cy = startY + row * cellSize + cellSize / 2;
+    const radius = cellSize * 0.25;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function renderBoard(player: Player, x: number, y: number, size: number): void {
+  const boardSize = player.board.length;
   const cellSize = size / boardSize;
 
   // Background
   ctx.fillStyle = COLORS.boardBg;
   ctx.fillRect(x, y, size, size);
 
-  // Grid and patches
+  // Draw grid lines
+  ctx.strokeStyle = COLORS.boardGrid;
   for (let row = 0; row < boardSize; row++) {
     for (let col = 0; col < boardSize; col++) {
-      const cellX = x + col * cellSize;
-      const cellY = y + row * cellSize;
-      const patchId = board[row][col];
-
-      if (patchId !== null) {
-        ctx.fillStyle = COLORS.patchColors[(patchId - 1) % COLORS.patchColors.length];
-        ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
-      }
-
-      // Grid lines
-      ctx.strokeStyle = COLORS.boardGrid;
-      ctx.strokeRect(cellX, cellY, cellSize, cellSize);
+      ctx.strokeRect(x + col * cellSize, y + row * cellSize, cellSize, cellSize);
     }
+  }
+
+  // Draw placed patches with button indicators
+  for (const placed of player.placedPatches) {
+    const shape = rotatePatch(placed.patch.shape, placed.rotation);
+    const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
+
+    // Draw patch cells
+    ctx.fillStyle = patchColor;
+    for (let row = 0; row < shape.length; row++) {
+      for (let col = 0; col < shape[row].length; col++) {
+        if (shape[row][col]) {
+          const cellX = x + (placed.x + col) * cellSize;
+          const cellY = y + (placed.y + row) * cellSize;
+          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
+        }
+      }
+    }
+
+    // Draw button indicators
+    const startX = x + placed.x * cellSize;
+    const startY = y + placed.y * cellSize;
+    drawButtonIndicators(shape, placed.patch.buttonIncome, startX, startY, cellSize);
   }
 }
 
@@ -258,6 +304,9 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
         }
       }
     }
+
+    // Draw button indicators
+    drawButtonIndicators(shape, patch.buttonIncome, shapeX, shapeY, cellSize);
 
     // Cost info
     ctx.fillStyle = COLORS.text;
@@ -318,7 +367,7 @@ function renderPlacementScreen(state: AppState): void {
   const boardSize = Math.min(width - 40, height - btnHeight - 150);
   const boardLeft = (width - boardSize) / 2;
 
-  renderBoardWithGhost(player.board, boardLeft, boardTop, boardSize, patch, placement, canPlace);
+  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
   // Control buttons at bottom
   const controlY = boardTop + boardSize + 20;
@@ -348,7 +397,7 @@ function renderPlacementScreen(state: AppState): void {
 }
 
 function renderBoardWithGhost(
-  board: (number | null)[][],
+  player: Player,
   x: number,
   y: number,
   size: number,
@@ -356,44 +405,56 @@ function renderBoardWithGhost(
   placement: PlacementState,
   canPlace: boolean
 ): void {
-  const boardSize = board.length;
+  const boardSize = player.board.length;
   const cellSize = size / boardSize;
 
   // Background
   ctx.fillStyle = COLORS.boardBg;
   ctx.fillRect(x, y, size, size);
 
-  // Grid and patches
+  // Draw grid lines
+  ctx.strokeStyle = COLORS.boardGrid;
   for (let row = 0; row < boardSize; row++) {
     for (let col = 0; col < boardSize; col++) {
-      const cellX = x + col * cellSize;
-      const cellY = y + row * cellSize;
-      const patchId = board[row][col];
-
-      if (patchId !== null) {
-        ctx.fillStyle = COLORS.patchColors[(patchId - 1) % COLORS.patchColors.length];
-        ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
-      }
-
-      // Grid lines
-      ctx.strokeStyle = COLORS.boardGrid;
-      ctx.strokeRect(cellX, cellY, cellSize, cellSize);
+      ctx.strokeRect(x + col * cellSize, y + row * cellSize, cellSize, cellSize);
     }
   }
 
+  // Draw placed patches with button indicators
+  for (const placed of player.placedPatches) {
+    const placedShape = rotatePatch(placed.patch.shape, placed.rotation);
+    const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
+
+    ctx.fillStyle = patchColor;
+    for (let row = 0; row < placedShape.length; row++) {
+      for (let col = 0; col < placedShape[row].length; col++) {
+        if (placedShape[row][col]) {
+          const cellX = x + (placed.x + col) * cellSize;
+          const cellY = y + (placed.y + row) * cellSize;
+          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
+        }
+      }
+    }
+
+    drawButtonIndicators(placedShape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
+  }
+
   // Draw ghost patch
-  const shape = rotatePatch(patch.shape, placement.rotation);
+  const ghostShape = rotatePatch(patch.shape, placement.rotation);
   ctx.fillStyle = canPlace ? COLORS.ghostValid : COLORS.ghostInvalid;
 
-  for (let row = 0; row < shape.length; row++) {
-    for (let col = 0; col < shape[row].length; col++) {
-      if (shape[row][col]) {
+  for (let row = 0; row < ghostShape.length; row++) {
+    for (let col = 0; col < ghostShape[row].length; col++) {
+      if (ghostShape[row][col]) {
         const cellX = x + (placement.x + col) * cellSize;
         const cellY = y + (placement.y + row) * cellSize;
         ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
       }
     }
   }
+
+  // Draw button indicators on ghost
+  drawButtonIndicators(ghostShape, patch.buttonIncome, x + placement.x * cellSize, y + placement.y * cellSize, cellSize);
 }
 
 function renderGameEndScreen(state: AppState): void {
