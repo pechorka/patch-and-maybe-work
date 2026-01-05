@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2c3e50"/>
+  <g>
+    <!-- Row 1 -->
+    <rect x="32" y="32" width="112" height="112" fill="#e74c3c"/>
+    <rect x="144" y="32" width="112" height="112" fill="#3498db"/>
+    <rect x="256" y="32" width="112" height="112" fill="#2ecc71"/>
+    <rect x="368" y="32" width="112" height="112" fill="#f39c12"/>
+
+    <!-- Row 2 -->
+    <rect x="32" y="144" width="112" height="112" fill="#9b59b6"/>
+    <rect x="144" y="144" width="112" height="112" fill="#1abc9c"/>
+    <rect x="256" y="144" width="112" height="112" fill="#e67e22"/>
+    <rect x="368" y="144" width="112" height="112" fill="#34495e"/>
+
+    <!-- Row 3 -->
+    <rect x="32" y="256" width="112" height="112" fill="#f1c40f"/>
+    <rect x="144" y="256" width="112" height="112" fill="#e74c3c"/>
+    <rect x="256" y="256" width="112" height="112" fill="#3498db"/>
+    <rect x="368" y="256" width="112" height="112" fill="#2ecc71"/>
+
+    <!-- Row 4 -->
+    <rect x="32" y="368" width="112" height="112" fill="#9b59b6"/>
+    <rect x="144" y="368" width="112" height="112" fill="#1abc9c"/>
+    <rect x="256" y="368" width="112" height="112" fill="#e67e22"/>
+    <rect x="368" y="368" width="112" height="112" fill="#f39c12"/>
+  </g>
+  <!-- Stitch lines -->
+  <g stroke="#2c3e50" stroke-width="4" stroke-dasharray="8,8">
+    <line x1="144" y1="32" x2="144" y2="480"/>
+    <line x1="256" y1="32" x2="256" y2="480"/>
+    <line x1="368" y1="32" x2="368" y2="480"/>
+    <line x1="32" y1="144" x2="480" y2="144"/>
+    <line x1="32" y1="256" x2="480" y2="256"/>
+    <line x1="32" y1="368" x2="480" y2="368"/>
+  </g>
+</svg>
