@@ -1,5 +1,5 @@
 import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
-import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getWinner } from './game';
+import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import { rotatePatch } from './patches';
 
 // Colors
@@ -16,7 +16,7 @@ const COLORS = {
   buttonIndicator: '#3498db',
   patchColors: [
     '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
-    '#3498db', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
+    '#c0392b', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
     '#ff5722', '#795548', '#607d8b', '#673ab7', '#009688'
   ],
   ghostValid: 'rgba(46, 204, 113, 0.5)',
@@ -164,13 +164,18 @@ function renderGameScreen(state: AppState): void {
   const skipBtnX = boardLeft;
   const skipBtnY = height - skipBtnHeight - 20;
 
+  // Calculate skip amount
+  const currentPlayer = game.players[currentPlayerIdx];
+  const opponent = game.players[currentPlayerIdx === 0 ? 1 : 0];
+  const spacesToSkip = opponent.position - currentPlayer.position + 1;
+
   ctx.fillStyle = COLORS.button;
   ctx.fillRect(skipBtnX, skipBtnY, skipBtnWidth, skipBtnHeight);
 
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('SKIP & MOVE AHEAD', skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + 7);
+  ctx.fillText(`SKIP & MOVE AHEAD (+${spacesToSkip})`, skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + 7);
 
   buttons.push({
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
@@ -181,25 +186,37 @@ function renderGameScreen(state: AppState): void {
 
 function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeight: number): void {
   const panelWidth = width / 2;
+  const overtakeDistance = getOvertakeDistance(game);
 
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
     const x = i * panelWidth;
     const isActive = i === currentPlayerIdx;
+    const playerIdx = i as 0 | 1;
 
     ctx.fillStyle = isActive ? COLORS.panelActive : COLORS.panel;
     ctx.fillRect(x, 0, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = isActive ? 'bold 18px sans-serif' : '18px sans-serif';
+    ctx.font = isActive ? 'bold 16px sans-serif' : '16px sans-serif';
     ctx.textAlign = 'center';
 
     const centerX = x + panelWidth / 2;
-    ctx.fillText(player.name, centerX, 25);
-    ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, 50);
+    ctx.fillText(player.name, centerX, 18);
+    ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, 38);
+
     ctx.fillStyle = COLORS.textDim;
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`+${player.income}/turn`, centerX, 70);
+    ctx.font = '12px sans-serif';
+
+    // Income info
+    const incomeDistance = getNextIncomeDistance(game, playerIdx);
+    const incomeText = incomeDistance !== null ? `+${player.income} in ${incomeDistance}` : `+${player.income} (done)`;
+    ctx.fillText(incomeText, centerX, 55);
+
+    // Turn ends info (only for current player)
+    if (isActive) {
+      ctx.fillText(`Turn ends in: ${overtakeDistance}`, centerX, 72);
+    }
   }
 }
 

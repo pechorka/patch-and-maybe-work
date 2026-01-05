@@ -39,6 +39,7 @@ export interface GameState {
   patches: Patch[];
   marketPosition: number;  // Index in patches array
   timeTrackLength: number;
+  incomePositions: number[];  // Positions on time track where income is collected
 }
 
 export interface AppState {

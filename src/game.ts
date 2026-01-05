@@ -5,6 +5,7 @@ const STARTING_BUTTONS = 5;
 
 export function createGameState(boardSize: BoardSize): GameState {
   const timeTrackLength = getTimeTrackLength(boardSize);
+  const incomePositions = getIncomePositions(boardSize);
 
   // Shuffle patches
   const patches = shuffleArray([...PATCH_DEFINITIONS]);
@@ -18,6 +19,7 @@ export function createGameState(boardSize: BoardSize): GameState {
     patches,
     marketPosition: 0,
     timeTrackLength,
+    incomePositions,
   };
 }
 
@@ -42,6 +44,31 @@ function getTimeTrackLength(boardSize: BoardSize): number {
     case 9: return 53;
     case 11: return 70;
   }
+}
+
+function getIncomePositions(boardSize: BoardSize): number[] {
+  switch (boardSize) {
+    case 7: return [5, 11, 17, 23, 29, 35];
+    case 9: return [5, 11, 17, 23, 29, 35, 41, 47, 53];
+    case 11: return [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 70];
+  }
+}
+
+function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): void {
+  const player = state.players[playerIndex];
+  const oldPosition = player.position;
+  const newPosition = Math.min(oldPosition + spaces, state.timeTrackLength);
+
+  // Check for income checkpoints crossed
+  const checkpointsCrossed = state.incomePositions.filter(
+    pos => pos > oldPosition && pos <= newPosition
+  );
+
+  // Collect income for each checkpoint
+  player.buttons += checkpointsCrossed.length * player.income;
+
+  // Update position
+  player.position = newPosition;
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -161,8 +188,8 @@ export function buyPatch(
   // Add income
   player.income += patch.buttonIncome;
 
-  // Advance on time track
-  player.position = Math.min(player.position + patch.timeCost, state.timeTrackLength);
+  // Advance on time track (handles income collection)
+  movePlayer(state, playerIndex, patch.timeCost);
 
   // Place patch on board
   placePatchOnBoard(player, patch, x, y, rotation);
@@ -193,7 +220,8 @@ export function skipAhead(state: GameState): void {
   if (spacesToMove > 0) {
     // Earn buttons equal to spaces moved
     player.buttons += spacesToMove;
-    player.position = Math.min(opponent.position + 1, state.timeTrackLength);
+    // Advance on time track (handles income collection)
+    movePlayer(state, playerIndex, spacesToMove);
   }
 }
 
@@ -223,4 +251,18 @@ export function getWinner(state: GameState): 0 | 1 | 'tie' {
   if (score0 > score1) return 0;
   if (score1 > score0) return 1;
   return 'tie';
+}
+
+export function getNextIncomeDistance(state: GameState, playerIndex: 0 | 1): number | null {
+  const player = state.players[playerIndex];
+  const nextCheckpoint = state.incomePositions.find(pos => pos > player.position);
+  if (nextCheckpoint === undefined) return null;
+  return nextCheckpoint - player.position;
+}
+
+export function getOvertakeDistance(state: GameState): number {
+  const currentIdx = getCurrentPlayerIndex(state);
+  const currentPlayer = state.players[currentIdx];
+  const opponent = state.players[currentIdx === 0 ? 1 : 0];
+  return opponent.position - currentPlayer.position + 1;
 }
