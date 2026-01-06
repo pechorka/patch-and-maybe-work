@@ -1,17 +1,33 @@
-import type { Patch, PatchDefinition } from './types';
+import type { BoardSize, Patch, PatchDefinition } from './types';
+
+// Leather patch shape - 1x1 single square (placed on time track, not in market)
+export const LEATHER_PATCH_SHAPE: boolean[][] = [[true]];
+
+// Leather patch positions on time track for each board size
+export function getLeatherPatchPositions(boardSize: BoardSize): number[] {
+  switch (boardSize) {
+    case 7: return [8, 14, 20, 26, 32];
+    case 9: return [8, 18, 28, 38, 48];
+    case 11: return [10, 24, 38, 52, 64];
+  }
+}
+
+// Create a leather patch with the given ID (use negative IDs to distinguish from market patches)
+export function createLeatherPatch(id: number): Patch {
+  return {
+    id,
+    shape: LEATHER_PATCH_SHAPE,
+    buttonCost: 0,
+    timeCost: 0,
+    buttonIncome: 0,
+  };
+}
 
 // Each shape is a 2D boolean array
 // true = filled, false = empty
 // Small shapes (<5 cells) have 2 variants, big shapes (>=5 cells) have 1 variant
+// Note: 1x1 patches are now leather patches on the time track, not in the market
 export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
-  // 1x1 single square (1 cell) - 2 variants
-  {
-    shape: [[true]],
-    variants: [
-      { buttonCost: 1, timeCost: 1, buttonIncome: 0 },
-      { buttonCost: 2, timeCost: 2, buttonIncome: 1 },
-    ],
-  },
   // 2x1 horizontal (2 cells) - 2 variants
   {
     shape: [[true, true]],

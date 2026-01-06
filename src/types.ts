@@ -53,6 +53,12 @@ export interface DragState {
   startCellY: number;        // Original placementState.y when drag started
 }
 
+export interface LeatherPatchOnTrack {
+  position: number;
+  collected: boolean;
+  patchId: number;
+}
+
 export interface GameState {
   boardSize: BoardSize;
   players: [Player, Player];
@@ -60,6 +66,7 @@ export interface GameState {
   marketPosition: number;  // Index in patches array
   timeTrackLength: number;
   incomePositions: number[];  // Positions on time track where income is collected
+  leatherPatches: LeatherPatchOnTrack[];  // Leather patches on time track
 }
 
 export interface AppState {
@@ -70,6 +77,8 @@ export interface AppState {
   selectedBoardSize: BoardSize;
   playerNames: [string, string];
   previewPlayerIdx: number | null;
+  pendingLeatherPatches: number[];   // Queue of leather patch positions to collect
+  placingLeatherPatch: Patch | null; // Current leather patch being placed
 }
 
 export type ButtonType = 'standard' | 'patch' | 'track-position';

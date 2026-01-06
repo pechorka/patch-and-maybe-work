@@ -432,8 +432,16 @@ function renderPlacementScreen(state: AppState): void {
   const placement = state.placementState;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
   const player = game.players[currentPlayerIdx];
-  const patches = getAvailablePatches(game);
-  const patch = patches[placement.patchIndex];
+  const isLeatherPatch = state.placingLeatherPatch !== null;
+
+  // Get patch - either from market or leather patch being placed
+  let patch: Patch | undefined;
+  if (isLeatherPatch) {
+    patch = state.placingLeatherPatch!;
+  } else {
+    const patches = getAvailablePatches(game);
+    patch = patches[placement.patchIndex];
+  }
 
   if (!patch) return;
 
@@ -441,14 +449,25 @@ function renderPlacementScreen(state: AppState): void {
   const btnHeight = 50;
   const btnWidth = width / 2 - 10;
 
-  // Cancel button
-  ctx.fillStyle = '#c0392b';
-  ctx.fillRect(5, 5, btnWidth, btnHeight);
-  ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 20px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
-  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
+  if (isLeatherPatch) {
+    // Show "LEATHER PATCH" label instead of cancel button (can't cancel)
+    ctx.fillStyle = COLORS.leatherPatch;
+    ctx.fillRect(5, 5, btnWidth, btnHeight);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('LEATHER PATCH', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
+    // No button registration - can't cancel leather patch placement
+  } else {
+    // Cancel button
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(5, 5, btnWidth, btnHeight);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
+    buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
+  }
 
   // Confirm button
   const shape = getTransformedShape(patch.shape, placement.rotation, placement.reflected);
@@ -708,18 +727,30 @@ function renderCircularTimeTrack(
   for (let pos = 0; pos <= trackLength; pos++) {
     const angle = (pos / trackLength) * Math.PI * 2 - Math.PI / 2; // Start from top
 
-    // Income checkpoint markers (larger, different color)
-    const isIncomePos = game.incomePositions.includes(pos);
-    const dotRadius = isIncomePos ? 8 : 3;
-    const color = isIncomePos ? COLORS.buttonIndicator : COLORS.text;
-
     const x = centerX + Math.cos(angle) * radius;
     const y = centerY + Math.sin(angle) * radius;
 
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
+    // Check if this position has an uncollected leather patch
+    const leatherPatch = game.leatherPatches.find(
+      lp => lp.position === pos && !lp.collected
+    );
+
+    if (leatherPatch) {
+      // Draw leather patch marker (small brown square)
+      ctx.fillStyle = COLORS.leatherPatch;
+      const patchSize = 14;
+      ctx.fillRect(x - patchSize / 2, y - patchSize / 2, patchSize, patchSize);
+    } else {
+      // Income checkpoint markers (larger, different color)
+      const isIncomePos = game.incomePositions.includes(pos);
+      const dotRadius = isIncomePos ? 8 : 3;
+      const color = isIncomePos ? COLORS.buttonIndicator : COLORS.text;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Register clickable area for this position
     buttons.push({

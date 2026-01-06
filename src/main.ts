@@ -1,9 +1,23 @@
-import type { AppState, BoardSize } from './types';
-import { buyPatch, canPlacePatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, skipAhead } from './game';
+import type { AppState, BoardSize, Patch } from './types';
+import { buyPatch, canPlacePatch, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames } from './storage';
+
+// TODO: bug with repeats when < 3 figures left
+// TODO: toggle map overlaps on narower screens with board
+// TODO: original game balance
+// TODO: indicate that you can preview board on game over screen
+// TODO: cancel only on placements outside of the board
+// TODO: more obvious indication that you can't but thing
+// TODO: player color on the map should match player color on the board
+// TODO: background around the board should be in player color
+// TODO: ability to view board of other player
+// TODO: ability to customize colors
+// TODO: randomize first player
+// TODO: persist player scores
+// TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 
 // App state
 const state: AppState = {
@@ -14,6 +28,8 @@ const state: AppState = {
   selectedBoardSize: 9,
   playerNames: loadPlayerNames(),
   previewPlayerIdx: null,
+  pendingLeatherPatches: [],
+  placingLeatherPatch: null,
 };
 
 // Setup screen actions
@@ -71,8 +87,13 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
 
 export function skip(): void {
   if (state.gameState) {
-    skipAhead(state.gameState);
-    checkGameEnd();
+    const result = skipAhead(state.gameState);
+    if (result.crossedLeatherPositions.length > 0) {
+      state.pendingLeatherPatches = result.crossedLeatherPositions;
+      processNextLeatherPatch();
+    } else {
+      checkGameEnd();
+    }
   }
   render(state);
 }
@@ -87,6 +108,18 @@ export function openMapView(): void {
 
 // Placement screen actions
 export function cancelPlacement(): void {
+  // Can't cancel leather patch placement - it's mandatory
+  if (state.placingLeatherPatch && state.gameState) {
+    // Just reset position to center
+    if (state.placementState) {
+      state.placementState.x = Math.floor(state.gameState.boardSize / 2);
+      state.placementState.y = Math.floor(state.gameState.boardSize / 2);
+    }
+    state.dragState = null;
+    render(state);
+    return;
+  }
+
   state.placementState = null;
   state.dragState = null;
   state.screen = 'game';
@@ -95,19 +128,45 @@ export function cancelPlacement(): void {
 
 export function confirmPlacement(): void {
   if (state.gameState && state.placementState) {
-    const success = buyPatch(
-      state.gameState,
-      state.placementState.patchIndex,
-      state.placementState.x,
-      state.placementState.y,
-      state.placementState.rotation,
-      state.placementState.reflected
-    );
-    if (success) {
-      state.placementState = null;
-      state.dragState = null;
-      state.screen = 'game';
-      checkGameEnd();
+    if (state.placingLeatherPatch) {
+      // Placing a leather patch (free, no market removal)
+      const success = placeLeatherPatch(
+        state.gameState,
+        state.placingLeatherPatch,
+        state.placementState.x,
+        state.placementState.y,
+        state.placementState.rotation,
+        state.placementState.reflected
+      );
+      if (success) {
+        state.placementState = null;
+        state.dragState = null;
+        state.placingLeatherPatch = null;
+        // Check for more pending leather patches
+        processNextLeatherPatch();
+      }
+    } else {
+      // Regular market patch purchase
+      const result = buyPatch(
+        state.gameState,
+        state.placementState.patchIndex,
+        state.placementState.x,
+        state.placementState.y,
+        state.placementState.rotation,
+        state.placementState.reflected
+      );
+      if (result.success) {
+        state.placementState = null;
+        state.dragState = null;
+        // Queue leather patches for collection
+        if (result.crossedLeatherPositions.length > 0) {
+          state.pendingLeatherPatches = result.crossedLeatherPositions;
+          processNextLeatherPatch();
+        } else {
+          state.screen = 'game';
+          checkGameEnd();
+        }
+      }
     }
   }
   render(state);
@@ -161,6 +220,8 @@ export function reflect(): void {
 export function playAgain(): void {
   state.gameState = null;
   state.placementState = null;
+  state.pendingLeatherPatches = [];
+  state.placingLeatherPatch = null;
   state.screen = 'setup';
   render(state);
 }
@@ -207,8 +268,7 @@ export function isInsidePlacedPatch(screenX: number, screenY: number): boolean {
   if (!state.placementState || !state.gameState) return false;
 
   const layout = getPlacementBoardLayout(state.gameState);
-  const patches = getAvailablePatches(state.gameState);
-  const patch = patches[state.placementState.patchIndex];
+  const patch = getCurrentPlacementPatch();
   if (!patch) return false;
 
   const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
@@ -239,8 +299,7 @@ export function spawnPatchAt(screenX: number, screenY: number): void {
   if (!state.placementState || !state.gameState || state.screen !== 'placement') return;
 
   const layout = getPlacementBoardLayout(state.gameState);
-  const patches = getAvailablePatches(state.gameState);
-  const patch = patches[state.placementState.patchIndex];
+  const patch = getCurrentPlacementPatch();
   if (!patch) return;
 
   // Get current transformed shape and center on touch point
@@ -278,8 +337,7 @@ export function updateDrag(screenX: number, screenY: number): void {
 export function endDrag(): void {
   // Check if placement is valid
   if (state.placementState && state.gameState) {
-    const patches = getAvailablePatches(state.gameState);
-    const patch = patches[state.placementState.patchIndex];
+    const patch = getCurrentPlacementPatch();
     if (patch) {
       const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
       const playerIdx = getCurrentPlayerIndex(state.gameState);
@@ -287,6 +345,14 @@ export function endDrag(): void {
       const valid = canPlacePatch(player.board, shape, state.placementState.x, state.placementState.y);
 
       if (!valid) {
+        // For leather patches, reset position instead of cancel
+        if (state.placingLeatherPatch) {
+          state.placementState.x = Math.floor(state.gameState.boardSize / 2);
+          state.placementState.y = Math.floor(state.gameState.boardSize / 2);
+          state.dragState = null;
+          render(state);
+          return;
+        }
         cancelPlacement();  // Auto-cancel on invalid release
         return;
       }
@@ -296,11 +362,18 @@ export function endDrag(): void {
   render(state);
 }
 
-function getCurrentTransformedShape(): boolean[][] {
-  if (!state.gameState || !state.placementState) return [[]];
+function getCurrentPlacementPatch(): Patch | undefined {
+  if (!state.gameState || !state.placementState) return undefined;
+  if (state.placingLeatherPatch) {
+    return state.placingLeatherPatch;
+  }
   const patches = getAvailablePatches(state.gameState);
-  const patch = patches[state.placementState.patchIndex];
-  if (!patch) return [[]];
+  return patches[state.placementState.patchIndex];
+}
+
+function getCurrentTransformedShape(): boolean[][] {
+  const patch = getCurrentPlacementPatch();
+  if (!patch || !state.placementState) return [[]];
   return getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
 }
 
@@ -324,6 +397,36 @@ function getMaxNegativeY(): number {
     }
   }
   return 0;
+}
+
+function processNextLeatherPatch(): void {
+  if (!state.gameState) return;
+
+  if (state.pendingLeatherPatches.length === 0) {
+    state.screen = 'game';
+    checkGameEnd();
+    return;
+  }
+
+  // Get next leather patch position
+  const nextPosition = state.pendingLeatherPatches.shift()!;
+  const patch = collectLeatherPatch(state.gameState, nextPosition);
+
+  if (patch) {
+    // Set up placement screen for leather patch
+    state.placingLeatherPatch = patch;
+    state.placementState = {
+      patchIndex: -1,  // Not from market
+      x: Math.floor(state.gameState.boardSize / 2),
+      y: Math.floor(state.gameState.boardSize / 2),
+      rotation: 0,
+      reflected: false,
+    };
+    state.screen = 'placement';
+  } else {
+    // Patch already collected, move to next
+    processNextLeatherPatch();
+  }
 }
 
 function checkGameEnd(): void {

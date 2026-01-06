@@ -8,6 +8,7 @@ export const COLORS = {
   boardBg: '#1a252f',
   boardGrid: '#2c3e50',
   buttonIndicator: '#3498db',
+  leatherPatch: '#8B4513',  // Saddle brown - leather color
   patchColors: [
     '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
     '#c0392b', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
@@ -19,9 +20,13 @@ export const COLORS = {
 
 /**
  * Get the color for a patch based on its ID.
- * Consolidates the repeated pattern: COLORS.patchColors[(patch.id - 1) % COLORS.patchColors.length]
+ * Leather patches (negative IDs) return the leather color.
+ * Market patches use the patchColors array.
  */
 export function getPatchColor(patchId: number): string {
+  if (patchId < 0) {
+    return COLORS.leatherPatch;
+  }
   return COLORS.patchColors[(patchId - 1) % COLORS.patchColors.length];
 }
 

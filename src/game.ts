@@ -1,16 +1,28 @@
-import type { BoardSize, GameState, Patch, Player } from './types';
-import { PATCH_DEFINITIONS } from './patches';
+import type { BoardSize, GameState, LeatherPatchOnTrack, Patch, Player } from './types';
+import { createLeatherPatch, getLeatherPatchPositions, PATCH_DEFINITIONS } from './patches';
 import { getOpponentIndex } from './player-utils';
 import { getTransformedShape } from './shape-utils';
+
+export interface MoveResult {
+  crossedLeatherPositions: number[];
+}
 
 const STARTING_BUTTONS = 5;
 
 export function createGameState(boardSize: BoardSize, playerNames: [string, string]): GameState {
   const timeTrackLength = getTimeTrackLength(boardSize);
   const incomePositions = getIncomePositions(boardSize);
+  const leatherPositions = getLeatherPatchPositions(boardSize);
 
-  // Shuffle patches
+  // Shuffle patches (PATCH_DEFINITIONS no longer includes 1-cell patches)
   const patches = shuffleArray([...PATCH_DEFINITIONS]);
+
+  // Initialize leather patches on time track
+  const leatherPatches: LeatherPatchOnTrack[] = leatherPositions.map((pos, idx) => ({
+    position: pos,
+    collected: false,
+    patchId: -(idx + 1),  // Negative IDs: -1, -2, -3, -4, -5
+  }));
 
   return {
     boardSize,
@@ -22,6 +34,7 @@ export function createGameState(boardSize: BoardSize, playerNames: [string, stri
     marketPosition: 0,
     timeTrackLength,
     incomePositions,
+    leatherPatches,
   };
 }
 
@@ -56,7 +69,7 @@ function getIncomePositions(boardSize: BoardSize): number[] {
   }
 }
 
-function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): void {
+function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveResult {
   const player = state.players[playerIndex];
   const oldPosition = player.position;
   const newPosition = Math.min(oldPosition + spaces, state.timeTrackLength);
@@ -69,8 +82,15 @@ function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): void 
   // Collect income for each checkpoint
   player.buttons += checkpointsCrossed.length * player.income;
 
+  // Check for leather patches crossed (uncollected only)
+  const crossedLeatherPositions = state.leatherPatches
+    .filter(lp => !lp.collected && lp.position > oldPosition && lp.position <= newPosition)
+    .map(lp => lp.position);
+
   // Update position
   player.position = newPosition;
+
+  return { crossedLeatherPositions };
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -166,6 +186,11 @@ export function placePatchOnBoard(
   player.placedPatches.push({ patch, x, y, rotation, reflected });
 }
 
+export interface BuyPatchResult {
+  success: boolean;
+  crossedLeatherPositions: number[];
+}
+
 export function buyPatch(
   state: GameState,
   patchIndex: number,
@@ -173,18 +198,18 @@ export function buyPatch(
   y: number,
   rotation: number,
   reflected: boolean
-): boolean {
+): BuyPatchResult {
   const patches = getAvailablePatches(state);
   const patch = patches[patchIndex];
-  if (!patch) return false;
+  if (!patch) return { success: false, crossedLeatherPositions: [] };
 
   const playerIndex = getCurrentPlayerIndex(state);
   const player = state.players[playerIndex];
 
-  if (player.buttons < patch.buttonCost) return false;
+  if (player.buttons < patch.buttonCost) return { success: false, crossedLeatherPositions: [] };
 
   const shape = getTransformedShape(patch.shape, rotation, reflected);
-  if (!canPlacePatch(player.board, shape, x, y)) return false;
+  if (!canPlacePatch(player.board, shape, x, y)) return { success: false, crossedLeatherPositions: [] };
 
   // Deduct buttons
   player.buttons -= patch.buttonCost;
@@ -193,7 +218,7 @@ export function buyPatch(
   player.income += patch.buttonIncome;
 
   // Advance on time track (handles income collection)
-  movePlayer(state, playerIndex, patch.timeCost);
+  const moveResult = movePlayer(state, playerIndex, patch.timeCost);
 
   // Place patch on board
   placePatchOnBoard(player, patch, x, y, rotation, reflected);
@@ -207,10 +232,14 @@ export function buyPatch(
     state.marketPosition = actualIndex % state.patches.length;
   }
 
-  return true;
+  return { success: true, crossedLeatherPositions: moveResult.crossedLeatherPositions };
 }
 
-export function skipAhead(state: GameState): void {
+export interface SkipResult {
+  crossedLeatherPositions: number[];
+}
+
+export function skipAhead(state: GameState): SkipResult {
   const playerIndex = getCurrentPlayerIndex(state);
   const player = state.players[playerIndex];
   const opponent = state.players[getOpponentIndex(playerIndex)];
@@ -222,8 +251,11 @@ export function skipAhead(state: GameState): void {
     // Earn buttons equal to spaces moved
     player.buttons += spacesToMove;
     // Advance on time track (handles income collection)
-    movePlayer(state, playerIndex, spacesToMove);
+    const moveResult = movePlayer(state, playerIndex, spacesToMove);
+    return { crossedLeatherPositions: moveResult.crossedLeatherPositions };
   }
+
+  return { crossedLeatherPositions: [] };
 }
 
 export function isGameOver(state: GameState): boolean {
@@ -266,4 +298,38 @@ export function getOvertakeDistance(state: GameState): number {
   const currentPlayer = state.players[currentIdx];
   const opponent = state.players[getOpponentIndex(currentIdx)];
   return opponent.position - currentPlayer.position + 1;
+}
+
+export function collectLeatherPatch(state: GameState, trackPosition: number): Patch | null {
+  const leatherPatch = state.leatherPatches.find(
+    lp => lp.position === trackPosition && !lp.collected
+  );
+
+  if (!leatherPatch) return null;
+
+  // Mark as collected
+  leatherPatch.collected = true;
+
+  // Return the patch object for placement
+  return createLeatherPatch(leatherPatch.patchId);
+}
+
+export function placeLeatherPatch(
+  state: GameState,
+  patch: Patch,
+  x: number,
+  y: number,
+  rotation: number,
+  reflected: boolean
+): boolean {
+  const playerIndex = getCurrentPlayerIndex(state);
+  const player = state.players[playerIndex];
+
+  const shape = getTransformedShape(patch.shape, rotation, reflected);
+  if (!canPlacePatch(player.board, shape, x, y)) return false;
+
+  // No button cost, no time cost, no income - just place on board
+  placePatchOnBoard(player, patch, x, y, rotation, reflected);
+
+  return true;
 }
