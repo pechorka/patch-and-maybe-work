@@ -8,12 +8,19 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: bug with repeats when < 3 figures left
 // TODO: original game balance (placement of letter and income checkboxes)
 // TODO: indicate that you can preview board on game over screen
-// TODO: more obvious indication that you can't but thing
-// TODO: ability to customize colors
+// TODO: more obvious indication that you can't buy thing
+// TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 // TODO: confirm before skiping turn
 // TODO: autoskip if player can't buy anything
+// TODO: label to player order selection
+// TODO: move confirm and cancel button to the bottom (all button at the bottom)
+// TODO: make interface so player one is on the top and player 2 is at the bottom
+// So users can place device between each other and sit acros each other
+// TODO: show map button on placement screen
+// TODO: change player colors to corporate SA DEV ANA colors
+// TODO: board preview on game over screen should have player background
 
 // App state
 const state: AppState = {
