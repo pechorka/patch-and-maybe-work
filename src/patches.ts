@@ -23,139 +23,316 @@ export function createLeatherPatch(id: number): Patch {
   };
 }
 
-// Each shape is a 2D boolean array
-// true = filled, false = empty
-// Small shapes (<5 cells) have 2 variants, big shapes (>=5 cells) have 1 variant
-// Note: 1x1 patches are now leather patches on the time track, not in the market
+// Original Patchwork game patches (33 total)
+// Each shape is a 2D boolean array: true = filled, false = empty
+// Patches with same shape but different costs are grouped as variants
 export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
-  // 2x1 horizontal (2 cells) - 2 variants
   {
-    shape: [[true, true]],
-    variants: [
-      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
-      { buttonCost: 3, timeCost: 2, buttonIncome: 1 },
+    shape: [
+      [true],
+      [true],
+      [true],
     ],
-  },
-  // 3x1 horizontal (3 cells) - 2 variants
-  {
-    shape: [[true, true, true]],
     variants: [
       { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
-      { buttonCost: 4, timeCost: 3, buttonIncome: 1 },
     ],
   },
-  // 4x1 horizontal (4 cells) - 2 variants
   {
-    shape: [[true, true, true, true]],
+    shape: [
+      [false, true],
+      [true, true],
+      [true, false],
+    ],
+    variants: [
+      { buttonCost: 3, timeCost: 2, buttonIncome: 1 },
+      { buttonCost: 7, timeCost: 6, buttonIncome: 3 },
+    ],
+  },
+  {
+    shape: [
+      [true, false],
+      [true, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
+    ],
+  },
+  {
+    shape: [
+      [false, false, true, false, false],
+      [true, true, true, true, true],
+      [false, false, true, false, false],
+    ],
+    variants: [
+      { buttonCost: 1, timeCost: 4, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [true],
+      [true],
+    ],
+    variants: [
+      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
+    ],
+  },
+  {
+    shape: [
+      [false, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 1, timeCost: 3, buttonIncome: 0 }, { buttonCost: 3, timeCost: 1, buttonIncome: 0 },],
+  },
+  {
+    shape: [
+      [false, true, false],
+      [true, true, true],
+      [false, true, false],
+      [false, true, false],
+    ],
+    variants: [
+      { buttonCost: 0, timeCost: 3, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [true, false],
+      [true, true],
+      [true, true],
+      [false, true],
+    ],
+    variants: [
+      { buttonCost: 4, timeCost: 2, buttonIncome: 0 },
+    ],
+  },
+  {
+    shape: [
+      [true, true],
+      [false, true],
+      [false, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 1, timeCost: 5, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [true],
+      [true],
+      [true],
+      [true],
+    ],
     variants: [
       { buttonCost: 3, timeCost: 3, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [false, true],
+      [true, true],
+      [false, true],
+    ],
+    variants: [
+      { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
+    ],
+  },
+  {
+    shape: [
+      [true, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 6, timeCost: 5, buttonIncome: 2 },
+    ],
+  },
+  {
+    shape: [
+      [true, false],
+      [true, false],
+      [true, true],
+      [true, false],
+    ],
+    variants: [
+      { buttonCost: 3, timeCost: 4, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [true, false],
+      [true, true],
+      [true, true],
+      [true, false],
+    ],
+    variants: [
+      { buttonCost: 7, timeCost: 4, buttonIncome: 2 },
+    ],
+  },
+  {
+    shape: [
+      [false, true, false],
+      [false, true, true],
+      [true, true, false],
+      [false, true, false],
+    ],
+    variants: [
+      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
+    ],
+  },
+  {
+    shape: [
+      [false, true, false],
+      [true, true, true],
+      [true, false, true],
+    ],
+    variants: [
+      { buttonCost: 3, timeCost: 6, buttonIncome: 2 },
+    ],
+  },
+  {
+    shape: [
+      [true, true, true, true, true],
+    ],
+    variants: [
+      { buttonCost: 7, timeCost: 1, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [false, true, false],
+      [true, true, true],
+      [true, true, true],
+      [false, true, false],
+    ],
+    variants: [
+      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [false, true],
+      [false, true],
+      [false, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 10, timeCost: 3, buttonIncome: 2 },
+    ],
+  },
+  {
+    shape: [
+      [false, true],
+      [false, true],
+      [true, true],
+    ],
+    variants: [
+      { buttonCost: 4, timeCost: 6, buttonIncome: 2 },
+      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+    ],
+  },
+  {
+    shape: [
+      [false, true, false],
+      [true, true, true],
+      [false, true, false],
+    ],
+    variants: [
       { buttonCost: 5, timeCost: 4, buttonIncome: 2 },
     ],
   },
-  // 2x2 square (4 cells) - 2 variants
   {
     shape: [
-      [true, true],
-      [true, true],
-    ],
-    variants: [
-      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
-      { buttonCost: 6, timeCost: 3, buttonIncome: 2 },
-    ],
-  },
-  // L-shape (4 cells) - 2 variants
-  {
-    shape: [
-      [true, false],
-      [true, false],
-      [true, true],
-    ],
-    variants: [
-      { buttonCost: 3, timeCost: 2, buttonIncome: 0 },
-      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
-    ],
-  },
-  // T-shape (4 cells) - 2 variants
-  {
-    shape: [
+      [true, false, true],
       [true, true, true],
-      [false, true, false],
+      [true, false, true],
     ],
     variants: [
-      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
       { buttonCost: 2, timeCost: 3, buttonIncome: 0 },
     ],
   },
-  // S-shape (4 cells) - 2 variants (Z-shape removed as it's a reflection)
   {
     shape: [
-      [false, true, true],
-      [true, true, false],
+      [false, true, false],
+      [false, true, false],
+      [true, true, true],
     ],
     variants: [
-      { buttonCost: 3, timeCost: 2, buttonIncome: 0 },
-      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
+      { buttonCost: 5, timeCost: 5, buttonIncome: 2 },
     ],
   },
-  // Corner (3 cells) - 2 variants
   {
     shape: [
       [true, true],
-      [true, false],
+      [true, true],
+      [false, true],
+      [false, true],
     ],
     variants: [
-      { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
-      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+      { buttonCost: 10, timeCost: 5, buttonIncome: 3 },
     ],
   },
-  // Plus shape (5 cells) - 1 variant
+  {
+    shape: [
+      [true, true, false],
+      [false, true, false],
+      [false, true, false],
+      [false, true, true],
+    ],
+    variants: [
+      { buttonCost: 1, timeCost: 2, buttonIncome: 0 },
+    ],
+  },
   {
     shape: [
       [false, true, false],
-      [true, true, true],
       [false, true, false],
+      [false, true, false],
+      [true, true, true],
     ],
     variants: [
-      { buttonCost: 5, timeCost: 3, buttonIncome: 2 },
+      { buttonCost: 7, timeCost: 2, buttonIncome: 2 },
     ],
   },
-  // Large L (5 cells) - 1 variant
   {
     shape: [
       [true, false, false],
-      [true, false, false],
-      [true, true, true],
+      [true, true, false],
+      [false, true, true],
     ],
     variants: [
-      { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
+      { buttonCost: 10, timeCost: 4, buttonIncome: 3 },
     ],
   },
-  // U-shape (5 cells) - 1 variant
   {
     shape: [
       [true, false, true],
       [true, true, true],
     ],
     variants: [
-      { buttonCost: 4, timeCost: 2, buttonIncome: 1 },
+      { buttonCost: 1, timeCost: 2, buttonIncome: 0 },
     ],
   },
-  // Small T (5 cells) - 1 variant
   {
     shape: [
-      [true, true, true],
-      [false, true, false],
-      [false, true, false],
+      [false, true],
+      [false, true],
+      [true, true],
+      [true, false],
     ],
     variants: [
-      { buttonCost: 5, timeCost: 3, buttonIncome: 2 },
+      { buttonCost: 2, timeCost: 3, buttonIncome: 1 },
     ],
   },
-  // 5-block line (5 cells) - 1 variant
   {
-    shape: [[true, true, true, true, true]],
+    shape: [
+      [false, true, true],
+      [false, true, true],
+      [true, true, false],
+    ],
     variants: [
-      { buttonCost: 4, timeCost: 4, buttonIncome: 2 },
+      { buttonCost: 8, timeCost: 6, buttonIncome: 3 },
     ],
   },
 ];
