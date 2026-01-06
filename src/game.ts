@@ -1,5 +1,7 @@
 import type { BoardSize, GameState, Patch, Player } from './types';
-import { PATCH_DEFINITIONS, reflectPatch, rotatePatch } from './patches';
+import { PATCH_DEFINITIONS } from './patches';
+import { getOpponentIndex } from './player-utils';
+import { getTransformedShape } from './shape-utils';
 
 const STARTING_BUTTONS = 5;
 
@@ -151,10 +153,7 @@ export function placePatchOnBoard(
   rotation: number,
   reflected: boolean
 ): void {
-  let shape = rotatePatch(patch.shape, rotation);
-  if (reflected) {
-    shape = reflectPatch(shape);
-  }
+  const shape = getTransformedShape(patch.shape, rotation, reflected);
 
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
@@ -184,10 +183,7 @@ export function buyPatch(
 
   if (player.buttons < patch.buttonCost) return false;
 
-  let shape = rotatePatch(patch.shape, rotation);
-  if (reflected) {
-    shape = reflectPatch(shape);
-  }
+  const shape = getTransformedShape(patch.shape, rotation, reflected);
   if (!canPlacePatch(player.board, shape, x, y)) return false;
 
   // Deduct buttons
@@ -217,7 +213,7 @@ export function buyPatch(
 export function skipAhead(state: GameState): void {
   const playerIndex = getCurrentPlayerIndex(state);
   const player = state.players[playerIndex];
-  const opponent = state.players[playerIndex === 0 ? 1 : 0];
+  const opponent = state.players[getOpponentIndex(playerIndex)];
 
   // Move just ahead of opponent
   const spacesToMove = opponent.position - player.position + 1;
@@ -268,6 +264,6 @@ export function getNextIncomeDistance(state: GameState, playerIndex: 0 | 1): num
 export function getOvertakeDistance(state: GameState): number {
   const currentIdx = getCurrentPlayerIndex(state);
   const currentPlayer = state.players[currentIdx];
-  const opponent = state.players[currentIdx === 0 ? 1 : 0];
+  const opponent = state.players[getOpponentIndex(currentIdx)];
   return opponent.position - currentPlayer.position + 1;
 }

@@ -2,18 +2,36 @@ import type { Button } from './types';
 import { buttons } from './renderer';
 import { endDrag, getAppState, isDragging, selectPatch, spawnPatchAt, trackPositionRelease, updateDrag } from './main';
 
+/**
+ * Extract pointer coordinates from mouse or touch event.
+ */
+function getPointerCoords(e: MouseEvent | TouchEvent): { x: number; y: number } | null {
+  if ('clientX' in e) {
+    return { x: e.clientX, y: e.clientY };
+  }
+  if ('touches' in e && e.touches.length > 0) {
+    const touch = e.touches[0];
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  if ('changedTouches' in e && e.changedTouches.length > 0) {
+    const touch = e.changedTouches[0];
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  return null;
+}
+
 export function initInput(canvas: HTMLCanvasElement): void {
   canvas.addEventListener('click', handleClick);
-  canvas.addEventListener('touchend', handleTouch);
+  canvas.addEventListener('touchend', handleTouchEnd);
 
   // Track position press/release handling and drag
-  canvas.addEventListener('mousedown', handleMouseDown);
-  canvas.addEventListener('touchstart', handleTouchStart);
+  canvas.addEventListener('mousedown', handlePointerDown);
+  canvas.addEventListener('touchstart', handlePointerDown);
   canvas.addEventListener('mouseup', handleRelease);
   canvas.addEventListener('touchend', handleRelease);
 
   // Drag move handlers
-  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('mousemove', handlePointerMove);
   canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
 }
 
@@ -21,53 +39,34 @@ function handleClick(e: MouseEvent): void {
   checkHit(e.clientX, e.clientY);
 }
 
-function handleTouch(e: TouchEvent): void {
+function handleTouchEnd(e: TouchEvent): void {
   e.preventDefault();
-  if (e.changedTouches.length > 0) {
-    const touch = e.changedTouches[0];
-    checkHit(touch.clientX, touch.clientY);
+  const coords = getPointerCoords(e);
+  if (coords) {
+    checkHit(coords.x, coords.y);
   }
 }
 
-function handleMouseDown(e: MouseEvent): void {
+function handlePointerDown(e: MouseEvent | TouchEvent): void {
+  const coords = getPointerCoords(e);
+  if (!coords) return;
+
   const state = getAppState();
 
   // On game screen, check for patch button press
   if (state.screen === 'game') {
-    if (checkPatchButtonHit(e.clientX, e.clientY)) {
+    if (checkPatchButtonHit(coords.x, coords.y)) {
       return;
     }
   }
 
   // On placement screen, reposition patch at touch location and start drag
   if (state.screen === 'placement') {
-    spawnPatchAt(e.clientX, e.clientY);
+    spawnPatchAt(coords.x, coords.y);
     return;
   }
 
-  checkTrackPositionHit(e.clientX, e.clientY);
-}
-
-function handleTouchStart(e: TouchEvent): void {
-  if (e.touches.length > 0) {
-    const touch = e.touches[0];
-    const state = getAppState();
-
-    // On game screen, check for patch button press
-    if (state.screen === 'game') {
-      if (checkPatchButtonHit(touch.clientX, touch.clientY)) {
-        return;
-      }
-    }
-
-    // On placement screen, reposition patch at touch location and start drag
-    if (state.screen === 'placement') {
-      spawnPatchAt(touch.clientX, touch.clientY);
-      return;
-    }
-
-    checkTrackPositionHit(touch.clientX, touch.clientY);
-  }
+  checkTrackPositionHit(coords.x, coords.y);
 }
 
 function handleRelease(): void {
@@ -78,19 +77,10 @@ function handleRelease(): void {
   trackPositionRelease();
 }
 
-function isTrackPositionButton(button: Button): boolean {
-  return button.label.startsWith('Position ');
-}
-
-function isPatchButton(button: Button): boolean {
-  return button.label.startsWith('Patch ');
-}
-
 function checkPatchButtonHit(x: number, y: number): boolean {
   for (const button of buttons) {
-    if (isPatchButton(button) && isInside(x, y, button)) {
-      // Extract patch index from label "Patch 1" → 0
-      const patchIndex = parseInt(button.label.split(' ')[1]) - 1;
+    if (button.type === 'patch' && isInside(x, y, button)) {
+      const patchIndex = button.metadata?.patchIndex ?? 0;
       selectPatch(patchIndex, x, y);
       return true;
     }
@@ -100,8 +90,8 @@ function checkPatchButtonHit(x: number, y: number): boolean {
 
 function checkHit(x: number, y: number): void {
   for (const button of buttons) {
-    // Skip track position buttons and patch buttons - they're handled by press/release
-    if (isTrackPositionButton(button) || isPatchButton(button)) {
+    // Only handle standard buttons - patch and track-position are handled by press/release
+    if (button.type !== 'standard') {
       continue;
     }
     if (isInside(x, y, button)) {
@@ -113,7 +103,7 @@ function checkHit(x: number, y: number): void {
 
 function checkTrackPositionHit(x: number, y: number): void {
   for (const button of buttons) {
-    if (isInside(x, y, button) && isTrackPositionButton(button)) {
+    if (button.type === 'track-position' && isInside(x, y, button)) {
       button.action();
       return;
     }
@@ -129,7 +119,7 @@ function isInside(x: number, y: number, button: Button): boolean {
   );
 }
 
-function handleMouseMove(e: MouseEvent): void {
+function handlePointerMove(e: MouseEvent): void {
   if (isDragging()) {
     updateDrag(e.clientX, e.clientY);
   }
@@ -142,5 +132,3 @@ function handleTouchMove(e: TouchEvent): void {
     updateDrag(touch.clientX, touch.clientY);
   }
 }
-
-

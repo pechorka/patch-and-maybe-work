@@ -7,27 +7,10 @@ import {
   playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
 } from './main';
-import { reflectPatch, rotatePatch } from './patches';
-
-// Colors
-const COLORS = {
-  background: '#2c3e50',
-  panel: '#34495e',
-  panelActive: '#3498db',
-  text: '#ecf0f1',
-  button: '#27ae60',
-  buttonDisabled: '#7f8c8d',
-  boardBg: '#1a252f',
-  boardGrid: '#2c3e50',
-  buttonIndicator: '#3498db',
-  patchColors: [
-    '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
-    '#c0392b', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
-    '#ff5722', '#795548', '#607d8b', '#673ab7', '#009688'
-  ],
-  ghostValid: 'rgba(46, 204, 113, 0.5)',
-  ghostInvalid: 'rgba(231, 76, 60, 0.5)',
-};
+import { getTransformedShape } from './shape-utils';
+import { COLORS, getPatchColor, adjustColorOpacity } from './colors';
+import { getOpponentIndex } from './player-utils';
+import { renderBoard as renderBoardNew } from './renderer/board-renderer';
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
@@ -69,6 +52,34 @@ export function getPlacementBoardLayout(gameState: GameState): BoardLayout {
     boardSize: boardPixelSize,
     cellSize,
     boardCells: gameState.boardSize,
+  };
+}
+
+/**
+ * Convert screen coordinates to cell coordinates.
+ */
+export function screenToCellCoords(
+  screenX: number,
+  screenY: number,
+  layout: BoardLayout
+): { cellX: number; cellY: number } {
+  return {
+    cellX: (screenX - layout.boardLeft) / layout.cellSize,
+    cellY: (screenY - layout.boardTop) / layout.cellSize,
+  };
+}
+
+/**
+ * Calculate the cell position to center a shape on a given cell coordinate.
+ */
+export function centerShapeOnCell(
+  cellX: number,
+  cellY: number,
+  shape: boolean[][]
+): { x: number; y: number } {
+  return {
+    x: Math.round(cellX - shape[0].length / 2),
+    y: Math.round(cellY - shape.length / 2),
   };
 }
 
@@ -162,6 +173,7 @@ function renderSetupScreen(state: AppState): void {
       x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
       label: state.playerNames[i],
       action: () => editName(i as 0 | 1),
+      type: 'standard',
     });
   }
 
@@ -194,6 +206,7 @@ function renderSetupScreen(state: AppState): void {
       x, y, width: buttonWidth, height: buttonHeight,
       label: `${size}x${size}`,
       action: () => selectSize(size),
+      type: 'standard',
     });
   });
 
@@ -214,6 +227,7 @@ function renderSetupScreen(state: AppState): void {
     x: startBtnX, y: startBtnY, width: startBtnWidth, height: startBtnHeight,
     label: 'Start Game',
     action: startGame,
+    type: 'standard',
   });
 }
 
@@ -246,7 +260,7 @@ function renderGameScreen(state: AppState): void {
 
   // Calculate skip amount
   const currentPlayer = game.players[currentPlayerIdx];
-  const opponent = game.players[currentPlayerIdx === 0 ? 1 : 0];
+  const opponent = game.players[getOpponentIndex(currentPlayerIdx)];
   const spacesToSkip = opponent.position - currentPlayer.position + 1;
 
   ctx.fillStyle = COLORS.button;
@@ -261,6 +275,7 @@ function renderGameScreen(state: AppState): void {
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
     label: 'Skip',
     action: skip,
+    type: 'standard',
   });
 
   // Toggle map button (top right corner)
@@ -278,6 +293,7 @@ function renderGameScreen(state: AppState): void {
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
     action: openMapView,
+    type: 'standard',
   });
 }
 
@@ -350,46 +366,7 @@ function drawButtonIndicators(
 }
 
 function renderBoard(player: Player, x: number, y: number, size: number): void {
-  const boardSize = player.board.length;
-  const cellSize = size / boardSize;
-
-  // Background
-  ctx.fillStyle = COLORS.boardBg;
-  ctx.fillRect(x, y, size, size);
-
-  // Draw grid lines
-  ctx.strokeStyle = COLORS.boardGrid;
-  for (let row = 0; row < boardSize; row++) {
-    for (let col = 0; col < boardSize; col++) {
-      ctx.strokeRect(x + col * cellSize, y + row * cellSize, cellSize, cellSize);
-    }
-  }
-
-  // Draw placed patches with button indicators
-  for (const placed of player.placedPatches) {
-    let shape = rotatePatch(placed.patch.shape, placed.rotation);
-    if (placed.reflected) {
-      shape = reflectPatch(shape);
-    }
-    const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
-
-    // Draw patch cells
-    ctx.fillStyle = patchColor;
-    for (let row = 0; row < shape.length; row++) {
-      for (let col = 0; col < shape[row].length; col++) {
-        if (shape[row][col]) {
-          const cellX = x + (placed.x + col) * cellSize;
-          const cellY = y + (placed.y + row) * cellSize;
-          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
-        }
-      }
-    }
-
-    // Draw button indicators
-    const startX = x + placed.x * cellSize;
-    const startY = y + placed.y * cellSize;
-    drawButtonIndicators(shape, placed.patch.buttonIncome, startX, startY, cellSize);
-  }
+  renderBoardNew(ctx, player, x, y, size);
 }
 
 function renderAvailablePatches(game: GameState, x: number, y: number, totalWidth: number): void {
@@ -413,7 +390,7 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
     const shapeX = patchX + (patchAreaWidth - shapeWidth) / 2;
     const shapeY = y + 10;
 
-    ctx.fillStyle = COLORS.patchColors[(patch.id - 1) % COLORS.patchColors.length];
+    ctx.fillStyle = getPatchColor(patch.id);
     for (let row = 0; row < shape.length; row++) {
       for (let col = 0; col < shape[row].length; col++) {
         if (shape[row][col]) {
@@ -437,6 +414,8 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
         x: patchX + 5, y, width: patchAreaWidth - 10, height: patchAreaHeight,
         label: `Patch ${i + 1}`,
         action: () => {}, // Handled by mousedown/touchstart in input.ts
+        type: 'patch',
+        metadata: { patchIndex: i },
       });
     }
   });
@@ -465,13 +444,10 @@ function renderPlacementScreen(state: AppState): void {
   ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
-  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement });
+  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
 
   // Confirm button
-  let shape = rotatePatch(patch.shape, placement.rotation);
-  if (placement.reflected) {
-    shape = reflectPatch(shape);
-  }
+  const shape = getTransformedShape(patch.shape, placement.rotation, placement.reflected);
   const canPlace = canPlacePatch(player.board, shape, placement.x, placement.y);
 
   ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
@@ -479,7 +455,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = COLORS.text;
   ctx.fillText('CONFIRM', width / 2 + 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
   if (canPlace) {
-    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement });
+    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
   }
 
   // Board with ghost
@@ -505,7 +481,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Rotate', rotateBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
-  buttons.push({ x: rotateBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Rotate', action: rotate });
+  buttons.push({ x: rotateBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Rotate', action: rotate, type: 'standard' });
 
   // Reflect button
   const reflectBtnX = controlsStartX + controlBtnWidth + controlGap;
@@ -513,7 +489,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillRect(reflectBtnX, controlY, controlBtnWidth, controlBtnHeight);
   ctx.fillStyle = COLORS.text;
   ctx.fillText('Reflect', reflectBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
-  buttons.push({ x: reflectBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Reflect', action: reflect });
+  buttons.push({ x: reflectBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Reflect', action: reflect, type: 'standard' });
 }
 
 function renderBoardWithGhost(
@@ -525,62 +501,7 @@ function renderBoardWithGhost(
   placement: PlacementState,
   canPlace: boolean
 ): void {
-  const boardSize = player.board.length;
-  const cellSize = size / boardSize;
-
-  // Background
-  ctx.fillStyle = COLORS.boardBg;
-  ctx.fillRect(x, y, size, size);
-
-  // Draw grid lines
-  ctx.strokeStyle = COLORS.boardGrid;
-  for (let row = 0; row < boardSize; row++) {
-    for (let col = 0; col < boardSize; col++) {
-      ctx.strokeRect(x + col * cellSize, y + row * cellSize, cellSize, cellSize);
-    }
-  }
-
-  // Draw placed patches with button indicators
-  for (const placed of player.placedPatches) {
-    let placedShape = rotatePatch(placed.patch.shape, placed.rotation);
-    if (placed.reflected) {
-      placedShape = reflectPatch(placedShape);
-    }
-    const patchColor = COLORS.patchColors[(placed.patch.id - 1) % COLORS.patchColors.length];
-
-    ctx.fillStyle = patchColor;
-    for (let row = 0; row < placedShape.length; row++) {
-      for (let col = 0; col < placedShape[row].length; col++) {
-        if (placedShape[row][col]) {
-          const cellX = x + (placed.x + col) * cellSize;
-          const cellY = y + (placed.y + row) * cellSize;
-          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
-        }
-      }
-    }
-
-    drawButtonIndicators(placedShape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
-  }
-
-  // Draw ghost patch
-  let ghostShape = rotatePatch(patch.shape, placement.rotation);
-  if (placement.reflected) {
-    ghostShape = reflectPatch(ghostShape);
-  }
-  ctx.fillStyle = canPlace ? COLORS.ghostValid : COLORS.ghostInvalid;
-
-  for (let row = 0; row < ghostShape.length; row++) {
-    for (let col = 0; col < ghostShape[row].length; col++) {
-      if (ghostShape[row][col]) {
-        const cellX = x + (placement.x + col) * cellSize;
-        const cellY = y + (placement.y + row) * cellSize;
-        ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
-      }
-    }
-  }
-
-  // Draw button indicators on ghost
-  drawButtonIndicators(ghostShape, patch.buttonIncome, x + placement.x * cellSize, y + placement.y * cellSize, cellSize);
+  renderBoardNew(ctx, player, x, y, size, { patch, placement, canPlace });
 }
 
 function renderGameEndScreen(state: AppState): void {
@@ -628,6 +549,7 @@ function renderGameEndScreen(state: AppState): void {
       x: panelX, y: panelY, width: panelWidth, height: panelHeight,
       label: `Preview ${player.name}`,
       action: () => previewBoard(playerIdx),
+      type: 'standard',
     });
   }
 
@@ -654,6 +576,7 @@ function renderGameEndScreen(state: AppState): void {
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
     label: 'Play Again',
     action: playAgain,
+    type: 'standard',
   });
 }
 
@@ -709,6 +632,7 @@ function renderBoardPreview(state: AppState): void {
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
     label: 'Back',
     action: backToGameEnd,
+    type: 'standard',
   });
 }
 
@@ -745,6 +669,7 @@ function renderMapViewScreen(state: AppState): void {
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
     action: closeMapView,
+    type: 'standard',
   });
 }
 
@@ -791,6 +716,8 @@ function renderCircularTimeTrack(
       height: hitRadius * 2,
       label: `Position ${pos}`,
       action: () => trackPosition(pos),
+      type: 'track-position',
+      metadata: { trackPosition: pos },
     });
   }
 
@@ -946,7 +873,7 @@ function renderPatchInRing(
   }
 
   // Draw patch cells
-  const patchColor = COLORS.patchColors[(patch.id - 1) % COLORS.patchColors.length];
+  const patchColor = getPatchColor(patch.id);
   ctx.fillStyle = isAvailable ? patchColor : adjustColorOpacity(patchColor, 0.4);
 
   for (let row = 0; row < shape.length; row++) {
@@ -975,15 +902,3 @@ function renderPatchInRing(
   ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 2);
 }
 
-function adjustColorOpacity(color: string, opacity: number): string {
-  // Handle hex colors
-  if (color.startsWith('#')) {
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  }
-  // Return as-is if not hex
-  return color;
-}

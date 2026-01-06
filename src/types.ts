@@ -72,6 +72,13 @@ export interface AppState {
   previewPlayerIdx: number | null;
 }
 
+export type ButtonType = 'standard' | 'patch' | 'track-position';
+
+export interface ButtonMetadata {
+  patchIndex?: number;
+  trackPosition?: number;
+}
+
 export interface Button {
   x: number;
   y: number;
@@ -79,4 +86,6 @@ export interface Button {
   height: number;
   label: string;
   action: () => void;
+  type: ButtonType;
+  metadata?: ButtonMetadata;
 }

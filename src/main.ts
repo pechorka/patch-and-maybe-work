@@ -1,8 +1,8 @@
 import type { AppState, BoardSize } from './types';
 import { buyPatch, canPlacePatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
-import { reflectPatch, rotatePatch } from './patches';
-import { clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, setTappedTrackPosition } from './renderer';
+import { getTransformedShape } from './shape-utils';
+import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames } from './storage';
 
 // App state
@@ -44,16 +44,9 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[patchIndex];
     if (patch) {
-      const shape = patch.shape;
       const layout = getPlacementBoardLayout(state.gameState);
-
-      // Convert screen coords to cell coords, centering patch on touch
-      const touchCellX = (screenX - layout.boardLeft) / layout.cellSize;
-      const touchCellY = (screenY - layout.boardTop) / layout.cellSize;
-
-      // Center patch on touch point (no clamping - allow off-board)
-      const x = Math.round(touchCellX - shape[0].length / 2);
-      const y = Math.round(touchCellY - shape.length / 2);
+      const { cellX, cellY } = screenToCellCoords(screenX, screenY, layout);
+      const { x, y } = centerShapeOnCell(cellX, cellY, patch.shape);
 
       state.placementState = {
         patchIndex,
@@ -230,22 +223,13 @@ export function spawnPatchAt(screenX: number, screenY: number): void {
   const patch = patches[state.placementState.patchIndex];
   if (!patch) return;
 
-  // Get current transformed shape dimensions
-  let shape = rotatePatch(patch.shape, state.placementState.rotation);
-  if (state.placementState.reflected) {
-    shape = reflectPatch(shape);
-  }
+  // Get current transformed shape and center on touch point
+  const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
+  const { cellX, cellY } = screenToCellCoords(screenX, screenY, layout);
+  const pos = centerShapeOnCell(cellX, cellY, shape);
 
-  // Convert screen coords to cell coords, centering patch on touch
-  const touchCellX = (screenX - layout.boardLeft) / layout.cellSize;
-  const touchCellY = (screenY - layout.boardTop) / layout.cellSize;
-
-  // Center the patch on the touch point (no clamping - allow off-board)
-  const cellX = Math.round(touchCellX - shape[0].length / 2);
-  const cellY = Math.round(touchCellY - shape.length / 2);
-
-  state.placementState.x = cellX;
-  state.placementState.y = cellY;
+  state.placementState.x = pos.x;
+  state.placementState.y = pos.y;
 
   // Start drag immediately
   startDrag(screenX, screenY);
@@ -277,10 +261,7 @@ export function endDrag(): void {
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[state.placementState.patchIndex];
     if (patch) {
-      let shape = rotatePatch(patch.shape, state.placementState.rotation);
-      if (state.placementState.reflected) {
-        shape = reflectPatch(shape);
-      }
+      const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
       const playerIdx = getCurrentPlayerIndex(state.gameState);
       const player = state.gameState.players[playerIdx];
       const valid = canPlacePatch(player.board, shape, state.placementState.x, state.placementState.y);
@@ -295,20 +276,16 @@ export function endDrag(): void {
   render(state);
 }
 
-function getTransformedShape(): boolean[][] {
+function getCurrentTransformedShape(): boolean[][] {
   if (!state.gameState || !state.placementState) return [[]];
   const patches = getAvailablePatches(state.gameState);
   const patch = patches[state.placementState.patchIndex];
   if (!patch) return [[]];
-  let shape = rotatePatch(patch.shape, state.placementState.rotation);
-  if (state.placementState.reflected) {
-    shape = reflectPatch(shape);
-  }
-  return shape;
+  return getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
 }
 
 function getMaxNegativeX(): number {
-  const shape = getTransformedShape();
+  const shape = getCurrentTransformedShape();
   // Find leftmost filled column
   for (let col = 0; col < shape[0].length; col++) {
     for (let row = 0; row < shape.length; row++) {
@@ -319,7 +296,7 @@ function getMaxNegativeX(): number {
 }
 
 function getMaxNegativeY(): number {
-  const shape = getTransformedShape();
+  const shape = getCurrentTransformedShape();
   // Find topmost filled row
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
