@@ -1,6 +1,6 @@
 import type { Button } from './types';
 import { buttons } from './renderer';
-import { endDrag, getAppState, isDragging, isInsidePlacedPatch, selectPatch, startDrag, trackPositionRelease, updateDrag } from './main';
+import { endDrag, getAppState, isDragging, isInsidePlacedPatch, selectPatch, startDrag, startOpponentBoardPreview, stopOpponentBoardPreview, trackPositionRelease, updateDrag } from './main';
 
 /**
  * Extract pointer coordinates from mouse or touch event.
@@ -53,8 +53,12 @@ function handlePointerDown(e: MouseEvent | TouchEvent): void {
 
   const state = getAppState();
 
-  // On game screen, check for patch button press
+  // On game screen, check for player panel and patch button presses
   if (state.screen === 'game') {
+    // Check player panel first (tap and hold to preview opponent's board)
+    if (checkPlayerPanelHit(coords.x, coords.y)) {
+      return;
+    }
     if (checkPatchButtonHit(coords.x, coords.y)) {
       return;
     }
@@ -72,11 +76,24 @@ function handlePointerDown(e: MouseEvent | TouchEvent): void {
 }
 
 function handleRelease(): void {
+  // Always stop opponent board preview on release
+  stopOpponentBoardPreview();
+
   if (isDragging()) {
     endDrag();
     return;
   }
   trackPositionRelease();
+}
+
+function checkPlayerPanelHit(x: number, y: number): boolean {
+  for (const button of buttons) {
+    if (button.type === 'player-panel' && isInside(x, y, button)) {
+      startOpponentBoardPreview();
+      return true;
+    }
+  }
+  return false;
 }
 
 function checkPatchButtonHit(x: number, y: number): boolean {

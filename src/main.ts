@@ -10,7 +10,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: indicate that you can preview board on game over screen
 // TODO: cancel only on placements outside of the board
 // TODO: more obvious indication that you can't but thing
-// TODO: ability to view board of other player
 // TODO: ability to customize colors
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
@@ -27,6 +26,7 @@ const state: AppState = {
   previewPlayerIdx: null,
   pendingLeatherPatches: [],
   placingLeatherPatch: null,
+  previewingOpponentBoard: false,
 };
 
 // Setup screen actions
@@ -60,6 +60,7 @@ export function startGame(): void {
 // Game screen actions
 export function selectPatch(patchIndex: number, screenX: number, screenY: number): void {
   if (state.gameState) {
+    state.previewingOpponentBoard = false;
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[patchIndex];
     if (patch) {
@@ -90,6 +91,7 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
 
 export function skip(): void {
   if (state.gameState) {
+    state.previewingOpponentBoard = false;
     const result = skipAhead(state.gameState);
     if (result.crossedLeatherPositions.length > 0) {
       state.pendingLeatherPatches = result.crossedLeatherPositions;
@@ -103,6 +105,7 @@ export function skip(): void {
 
 export function openMapView(): void {
   if (state.gameState) {
+    state.previewingOpponentBoard = false;
     clearTappedTrackPosition();
     state.screen = 'mapView';
   }
@@ -131,6 +134,7 @@ export function cancelPlacement(): void {
 
 export function confirmPlacement(): void {
   if (state.gameState && state.placementState) {
+    state.previewingOpponentBoard = false;
     if (state.placingLeatherPatch) {
       // Placing a leather patch (free, no market removal)
       const success = placeLeatherPatch(
@@ -239,6 +243,21 @@ export function backToGameEnd(): void {
   state.previewPlayerIdx = null;
   state.screen = 'gameEnd';
   render(state);
+}
+
+// Opponent board preview (tap and hold)
+export function startOpponentBoardPreview(): void {
+  if (state.screen === 'game') {
+    state.previewingOpponentBoard = true;
+    render(state);
+  }
+}
+
+export function stopOpponentBoardPreview(): void {
+  if (state.previewingOpponentBoard) {
+    state.previewingOpponentBoard = false;
+    render(state);
+  }
 }
 
 // Map view screen actions

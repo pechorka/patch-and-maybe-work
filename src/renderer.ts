@@ -256,22 +256,27 @@ function renderGameScreen(state: AppState): void {
   const game = state.gameState;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
 
+  // Determine which player's board to display (current or opponent when previewing)
+  const displayPlayerIdx = state.previewingOpponentBoard
+    ? getOpponentIndex(currentPlayerIdx)
+    : currentPlayerIdx;
+
   // Player panels at top
   const panelHeight = 80;
   renderPlayerPanels(game, currentPlayerIdx, panelHeight);
 
-  // Current player's board
+  // Board display
   const boardTop = panelHeight + 20;
   const boardSize = Math.min(width - 40, height - panelHeight - 270);
   const boardLeft = (width - boardSize) / 2;
 
-  // Fill background below panels with player color
-  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
+  // Fill background below panels with displayed player's color
+  ctx.fillStyle = getPlayerColor(displayPlayerIdx as 0 | 1, false);
   ctx.fillRect(0, panelHeight, width, height - panelHeight);
 
   // Draw player color border around the board (brighter)
   const borderWidth = 6;
-  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, true);
+  ctx.fillStyle = getPlayerColor(displayPlayerIdx as 0 | 1, true);
   ctx.fillRect(
     boardLeft - borderWidth,
     boardTop - borderWidth,
@@ -279,7 +284,7 @@ function renderGameScreen(state: AppState): void {
     boardSize + borderWidth * 2
   );
 
-  renderBoard(game.players[currentPlayerIdx], boardLeft, boardTop, boardSize);
+  renderBoard(game.players[displayPlayerIdx], boardLeft, boardTop, boardSize);
 
   // Available patches
   const patchesTop = boardTop + boardSize + 20;
@@ -366,6 +371,20 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
     // Turn ends info (only for current player)
     if (isActive) {
       ctx.fillText(`Turn ends in: ${overtakeDistance}`, centerX, 72);
+    }
+
+    // Register button for opponent's panel (tap and hold to preview their board)
+    if (!isActive) {
+      buttons.push({
+        x,
+        y: 0,
+        width: panelWidth,
+        height: panelHeight,
+        label: `Preview ${player.name}'s board`,
+        action: () => {},
+        type: 'player-panel',
+        metadata: { playerIndex: i },
+      });
     }
   }
 }
