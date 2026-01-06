@@ -1,6 +1,6 @@
 import type { Button } from './types';
 import { buttons } from './renderer';
-import { endDrag, getAppState, isDragging, selectPatch, spawnPatchAt, trackPositionRelease, updateDrag } from './main';
+import { endDrag, getAppState, isDragging, isInsidePlacedPatch, selectPatch, startDrag, trackPositionRelease, updateDrag } from './main';
 
 /**
  * Extract pointer coordinates from mouse or touch event.
@@ -60,9 +60,11 @@ function handlePointerDown(e: MouseEvent | TouchEvent): void {
     }
   }
 
-  // On placement screen, reposition patch at touch location and start drag
+  // On placement screen, only start drag if clicking on the patch
   if (state.screen === 'placement') {
-    spawnPatchAt(coords.x, coords.y);
+    if (isInsidePlacedPatch(coords.x, coords.y)) {
+      startDrag(coords.x, coords.y);
+    }
     return;
   }
 

@@ -203,6 +203,26 @@ export function isDragging(): boolean {
   return state.dragState !== null;
 }
 
+export function isInsidePlacedPatch(screenX: number, screenY: number): boolean {
+  if (!state.placementState || !state.gameState) return false;
+
+  const layout = getPlacementBoardLayout(state.gameState);
+  const patches = getAvailablePatches(state.gameState);
+  const patch = patches[state.placementState.patchIndex];
+  if (!patch) return false;
+
+  const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
+
+  // Calculate patch bounding box in screen coordinates
+  const patchLeft = layout.boardLeft + state.placementState.x * layout.cellSize;
+  const patchTop = layout.boardTop + state.placementState.y * layout.cellSize;
+  const patchWidth = shape[0].length * layout.cellSize;
+  const patchHeight = shape.length * layout.cellSize;
+
+  return screenX >= patchLeft && screenX <= patchLeft + patchWidth &&
+         screenY >= patchTop && screenY <= patchTop + patchHeight;
+}
+
 export function startDrag(screenX: number, screenY: number): void {
   if (!state.placementState || state.screen !== 'placement') return;
 
