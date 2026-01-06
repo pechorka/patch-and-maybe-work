@@ -1,4 +1,5 @@
 import type { AppState, BoardSize } from './types';
+import { ACTIONS } from './actions';
 import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
@@ -18,11 +19,11 @@ function handleAction(action: string): void {
   const [cmd, arg] = action.split(':');
 
   switch (cmd) {
-    case 'selectSize':
+    case ACTIONS.SELECT_SIZE:
       state.selectedBoardSize = parseInt(arg) as BoardSize;
       break;
 
-    case 'editName': {
+    case ACTIONS.EDIT_NAME: {
       const playerIdx = parseInt(arg) as 0 | 1;
       const currentName = state.playerNames[playerIdx];
       const newName = prompt(`Enter name for Player ${playerIdx + 1}:`, currentName);
@@ -33,12 +34,12 @@ function handleAction(action: string): void {
       break;
     }
 
-    case 'startGame':
+    case ACTIONS.START_GAME:
       state.gameState = createGameState(state.selectedBoardSize, state.playerNames);
       state.screen = 'game';
       break;
 
-    case 'selectPatch':
+    case ACTIONS.SELECT_PATCH:
       if (state.gameState) {
         const patchIndex = parseInt(arg);
         const patches = getAvailablePatches(state.gameState);
@@ -62,19 +63,19 @@ function handleAction(action: string): void {
       }
       break;
 
-    case 'skip':
+    case ACTIONS.SKIP:
       if (state.gameState) {
         skipAhead(state.gameState);
         checkGameEnd();
       }
       break;
 
-    case 'cancelPlacement':
+    case ACTIONS.CANCEL_PLACEMENT:
       state.placementState = null;
       state.screen = 'game';
       break;
 
-    case 'confirmPlacement':
+    case ACTIONS.CONFIRM_PLACEMENT:
       if (state.gameState && state.placementState) {
         const success = buyPatch(
           state.gameState,
@@ -92,64 +93,68 @@ function handleAction(action: string): void {
       }
       break;
 
-    case 'moveLeft':
+    case ACTIONS.MOVE_LEFT:
       if (state.placementState) {
         state.placementState.x = Math.max(-getMaxNegativeX(), state.placementState.x - 1);
       }
       break;
 
-    case 'moveRight':
+    case ACTIONS.MOVE_RIGHT:
       if (state.placementState && state.gameState) {
         const maxX = state.gameState.boardSize - 1;
         state.placementState.x = Math.min(maxX, state.placementState.x + 1);
       }
       break;
 
-    case 'moveUp':
+    case ACTIONS.MOVE_UP:
       if (state.placementState) {
         state.placementState.y = Math.max(-getMaxNegativeY(), state.placementState.y - 1);
       }
       break;
 
-    case 'moveDown':
+    case ACTIONS.MOVE_DOWN:
       if (state.placementState && state.gameState) {
         const maxY = state.gameState.boardSize - 1;
         state.placementState.y = Math.min(maxY, state.placementState.y + 1);
       }
       break;
 
-    case 'rotate':
+    case ACTIONS.ROTATE:
       if (state.placementState) {
         state.placementState.rotation = (state.placementState.rotation + 1) % 4;
       }
       break;
 
-    case 'reflect':
+    case ACTIONS.REFLECT:
       if (state.placementState) {
         state.placementState.reflected = !state.placementState.reflected;
       }
       break;
 
-    case 'playAgain':
+    case ACTIONS.PLAY_AGAIN:
       state.gameState = null;
       state.placementState = null;
       state.screen = 'setup';
       break;
 
-    case 'openMapView':
+    case ACTIONS.OPEN_MAP_VIEW:
       if (state.gameState) {
         clearTappedTrackPosition();
         state.screen = 'mapView';
       }
       break;
 
-    case 'closeMapView':
+    case ACTIONS.CLOSE_MAP_VIEW:
       clearTappedTrackPosition();
       state.screen = 'game';
       break;
 
-    case 'trackPosition':
+    case ACTIONS.TRACK_POSITION:
       setTappedTrackPosition(parseInt(arg));
+      break;
+
+    case ACTIONS.TRACK_POSITION_RELEASE:
+      clearTappedTrackPosition();
       break;
   }
 

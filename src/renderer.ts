@@ -1,4 +1,5 @@
 import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
+import { ACTIONS, action } from './actions';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import { reflectPatch, rotatePatch } from './patches';
 
@@ -126,7 +127,7 @@ function renderSetupScreen(state: AppState): void {
     buttons.push({
       x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
       label: state.playerNames[i],
-      action: `editName:${i}`,
+      action: action(ACTIONS.EDIT_NAME, i),
     });
   }
 
@@ -158,7 +159,7 @@ function renderSetupScreen(state: AppState): void {
     buttons.push({
       x, y, width: buttonWidth, height: buttonHeight,
       label: `${size}x${size}`,
-      action: `selectSize:${size}`,
+      action: action(ACTIONS.SELECT_SIZE, size),
     });
   });
 
@@ -178,7 +179,7 @@ function renderSetupScreen(state: AppState): void {
   buttons.push({
     x: startBtnX, y: startBtnY, width: startBtnWidth, height: startBtnHeight,
     label: 'Start Game',
-    action: 'startGame',
+    action: ACTIONS.START_GAME,
   });
 }
 
@@ -225,7 +226,7 @@ function renderGameScreen(state: AppState): void {
   buttons.push({
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
     label: 'Skip',
-    action: 'skip',
+    action: ACTIONS.SKIP,
   });
 
   // Toggle map button (top right corner)
@@ -242,7 +243,7 @@ function renderGameScreen(state: AppState): void {
   buttons.push({
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
-    action: 'openMapView',
+    action: ACTIONS.OPEN_MAP_VIEW,
   });
 }
 
@@ -401,7 +402,7 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
       buttons.push({
         x: patchX + 5, y, width: patchAreaWidth - 10, height: patchAreaHeight,
         label: `Patch ${i + 1}`,
-        action: `selectPatch:${i}`,
+        action: action(ACTIONS.SELECT_PATCH, i),
       });
     }
   });
@@ -430,7 +431,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
-  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: 'cancelPlacement' });
+  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: ACTIONS.CANCEL_PLACEMENT });
 
   // Confirm button
   let shape = rotatePatch(patch.shape, placement.rotation);
@@ -444,7 +445,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = COLORS.text;
   ctx.fillText('CONFIRM', width / 2 + 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
   if (canPlace) {
-    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: 'confirmPlacement' });
+    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: ACTIONS.CONFIRM_PLACEMENT });
   }
 
   // Board with ghost
@@ -462,12 +463,12 @@ function renderPlacementScreen(state: AppState): void {
   const controlsStartX = (width - controlsWidth) / 2;
 
   const controls = [
-    { label: '<', action: 'moveLeft' },
-    { label: '^', action: 'moveUp' },
-    { label: 'R', action: 'rotate' },
-    { label: 'F', action: 'reflect' },
-    { label: 'v', action: 'moveDown' },
-    { label: '>', action: 'moveRight' },
+    { label: '<', action: ACTIONS.MOVE_LEFT },
+    { label: '^', action: ACTIONS.MOVE_UP },
+    { label: 'R', action: ACTIONS.ROTATE },
+    { label: 'F', action: ACTIONS.REFLECT },
+    { label: 'v', action: ACTIONS.MOVE_DOWN },
+    { label: '>', action: ACTIONS.MOVE_RIGHT },
   ];
 
   controls.forEach((ctrl, i) => {
@@ -607,7 +608,7 @@ function renderGameEndScreen(state: AppState): void {
   buttons.push({
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
     label: 'Play Again',
-    action: 'playAgain',
+    action: ACTIONS.PLAY_AGAIN,
   });
 }
 
@@ -653,7 +654,7 @@ function renderMapViewScreen(state: AppState): void {
   buttons.push({
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
-    action: 'closeMapView',
+    action: ACTIONS.CLOSE_MAP_VIEW,
   });
 }
 
@@ -699,7 +700,7 @@ function renderCircularTimeTrack(
       width: hitRadius * 2,
       height: hitRadius * 2,
       label: `Position ${pos}`,
-      action: `trackPosition:${pos}`,
+      action: action(ACTIONS.TRACK_POSITION, pos),
     });
   }
 
