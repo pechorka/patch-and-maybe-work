@@ -10,8 +10,6 @@ import { loadPlayerNames, savePlayerNames } from './storage';
 // TODO: indicate that you can preview board on game over screen
 // TODO: cancel only on placements outside of the board
 // TODO: more obvious indication that you can't but thing
-// TODO: player color on the map should match player color on the board
-// TODO: background around the board should be in player color
 // TODO: ability to view board of other player
 // TODO: ability to customize colors
 // TODO: randomize first player

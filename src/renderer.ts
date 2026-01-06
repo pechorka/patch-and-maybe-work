@@ -8,7 +8,7 @@ import {
   closeMapView, trackPosition,
 } from './main';
 import { getTransformedShape } from './shape-utils';
-import { COLORS, getPatchColor, adjustColorOpacity } from './colors';
+import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor } from './colors';
 import { getOpponentIndex } from './player-utils';
 import { renderBoard as renderBoardNew } from './renderer/board-renderer';
 
@@ -239,6 +239,20 @@ function renderGameScreen(state: AppState): void {
   const boardSize = Math.min(width - 40, height - panelHeight - 270);
   const boardLeft = (width - boardSize) / 2;
 
+  // Fill background below panels with player color
+  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
+  ctx.fillRect(0, panelHeight, width, height - panelHeight);
+
+  // Draw player color border around the board (brighter)
+  const borderWidth = 6;
+  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, true);
+  ctx.fillRect(
+    boardLeft - borderWidth,
+    boardTop - borderWidth,
+    boardSize + borderWidth * 2,
+    boardSize + borderWidth * 2
+  );
+
   renderBoard(game.players[currentPlayerIdx], boardLeft, boardTop, boardSize);
 
   // Available patches
@@ -304,7 +318,7 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
     const isActive = i === currentPlayerIdx;
     const playerIdx = i as 0 | 1;
 
-    ctx.fillStyle = isActive ? COLORS.panelActive : COLORS.panel;
+    ctx.fillStyle = getPlayerColor(playerIdx, isActive);
     ctx.fillRect(x, 0, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
@@ -774,7 +788,7 @@ function renderCircularTimeTrack(
     const y = centerY + Math.sin(angle) * tokenRadius;
 
     // Draw player token (colored circle)
-    ctx.fillStyle = i === 0 ? '#e74c3c' : '#3498db'; // Red for P1, Blue for P2
+    ctx.fillStyle = i === 0 ? COLORS.player1 : COLORS.player2;
     ctx.beginPath();
     ctx.arc(x, y, 16, 0, Math.PI * 2);
     ctx.fill();

@@ -9,6 +9,10 @@ export const COLORS = {
   boardGrid: '#2c3e50',
   buttonIndicator: '#3498db',
   leatherPatch: '#8B4513',  // Saddle brown - leather color
+  player1: '#e74c3c',  // Red for Player 1
+  player2: '#3498db',  // Blue for Player 2
+  player1Dim: '#8b2e23',  // Dimmed red for inactive P1
+  player2Dim: '#1f5a7a',  // Dimmed blue for inactive P2
   patchColors: [
     '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
     '#c0392b', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a',
@@ -42,4 +46,14 @@ export function adjustColorOpacity(color: string, opacity: number): string {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
   return color;
+}
+
+/**
+ * Get player color based on player index.
+ */
+export function getPlayerColor(playerIndex: 0 | 1, isActive: boolean): string {
+  if (playerIndex === 0) {
+    return isActive ? COLORS.player1 : COLORS.player1Dim;
+  }
+  return isActive ? COLORS.player2 : COLORS.player2Dim;
 }
