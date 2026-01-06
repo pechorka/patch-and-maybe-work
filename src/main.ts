@@ -5,7 +5,21 @@ import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
 
+// TODO: potential bug with last payout
+//   - Income + leather triggers look “between-cells” and shifted: incomePositions includes 53 (src/
+//    game.ts:63) but movePlayer() only triggers on newPosition > pos (src/game.ts:72), so the last
+//    income can never pay out; same applies to leather collection. Decide “on space” vs “between
+//    spaces” and make src/game.ts:63-85 + marker drawing (src/renderer.ts:785-808) consistent.
 // TODO: bug with repeats when < 3 figures left
+// TODO: better rotation
+//  Keep patch centered when rotating: rotate() only changes rotation (src/main.ts:225-229), so
+//  pieces “jump” because the anchor is top-left; adjust x/y to preserve center/pivot for smoother
+//  placement.
+// TODO: patch info during placement
+//  Add a lightweight “patch info” panel during placement (cells, cost/time/income, and projected
+//  score delta) so decisions don’t require mental math.
+// TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
+//    reliance on color alone, especially on small screens.
 // TODO: original game balance (placement of letter and income checkboxes)
 // TODO: indicate that you can preview board on game over screen
 // TODO: more obvious indication that you can't buy thing
@@ -21,6 +35,19 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: show map button on placement screen
 // TODO: change player colors to corporate SA DEV ANA colors
 // TODO: board preview on game over screen should have player background
+// TODO: add indiaction on player change (maybe some kind of animation?)
+// TODO: add animation for leather patch arrival
+// TODO: better leather patch visibility
+// TODO: congratulate player on 7x7 dorogo bogato
+// TODO: audio and haptic feedback
+// TODO: replay system to show full game video from the start
+// TODO:   - Add optional 1-step undo for the last confirmed purchase/placement (digital convenience, great
+//    for touch misplays).
+// TODO: share replay to unlock some unique color
+// TODO: patch placement animation
+// TODO: total game time
+// TODO: optional timer per turn
+
 
 // App state
 const state: AppState = {
@@ -310,7 +337,7 @@ export function isInsidePlacedPatch(screenX: number, screenY: number): boolean {
   const patchHeight = shape.length * layout.cellSize;
 
   return screenX >= patchLeft && screenX <= patchLeft + patchWidth &&
-         screenY >= patchTop && screenY <= patchTop + patchHeight;
+    screenY >= patchTop && screenY <= patchTop + patchHeight;
 }
 
 export function startDrag(screenX: number, screenY: number): void {

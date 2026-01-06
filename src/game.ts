@@ -14,7 +14,6 @@ export function createGameState(boardSize: BoardSize, playerNames: [string, stri
   const incomePositions = getIncomePositions(boardSize);
   const leatherPositions = getLeatherPatchPositions(boardSize);
 
-  // Shuffle patches (PATCH_DEFINITIONS no longer includes 1-cell patches)
   const patches = shuffleArray([...PATCH_DEFINITIONS]);
 
   // Initialize leather patches on time track
