@@ -1,4 +1,4 @@
-export type BoardSize = 7 | 9 | 11;
+export type BoardSize = 9;
 
 export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview';
 
@@ -38,6 +38,7 @@ export interface Player {
   position: number;  // Position on time track
   board: (number | null)[][];  // null = empty, number = patch id (for collision)
   placedPatches: PlacedPatch[];  // For rendering with full context
+  bonus7x7Area: { x: number; y: number } | null;  // Top-left corner of completed 7x7, or null
 }
 
 export interface PlacementState {
@@ -70,6 +71,7 @@ export interface GameState {
   incomePositions: number[];  // Positions on time track where income is collected
   leatherPatches: LeatherPatchOnTrack[];  // Leather patches on time track
   firstPlayerIndex: 0 | 1;  // Which player goes first when positions are tied
+  bonus7x7Claimed: boolean;  // True once any player has claimed the 7x7 bonus
 }
 
 export interface AppState {

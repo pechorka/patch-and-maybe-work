@@ -54,6 +54,18 @@ export function renderBoard(
     drawButtonIndicators(ctx, shape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
   }
 
+  // Draw 7x7 bonus highlight if player has earned it
+  if (player.bonus7x7Area !== null) {
+    const bonusX = x + player.bonus7x7Area.x * cellSize;
+    const bonusY = y + player.bonus7x7Area.y * cellSize;
+    const bonusSize = 7 * cellSize;
+
+    ctx.strokeStyle = COLORS.bonus7x7;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bonusX, bonusY, bonusSize, bonusSize);
+    ctx.lineWidth = 1;
+  }
+
   // Draw ghost patch if provided
   if (ghost) {
     const ghostShape = getTransformedShape(ghost.patch.shape, ghost.placement.rotation, ghost.placement.reflected);

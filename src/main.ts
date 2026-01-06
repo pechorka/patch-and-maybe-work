@@ -1,12 +1,12 @@
-import type { AppState, BoardSize, Patch, Shape } from './types';
-import { buyPatch, collectLeatherPatch, createGameState, getAvailablePatches, isGameOver, placeLeatherPatch, skipAhead } from './game';
+import type { AppState, Patch, Shape } from './types';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
 
 // TODO: bug with repeats when < 3 figures left
-// TODO: original game balance
+// TODO: original game balance (placement of letter and income checkboxes)
 // TODO: indicate that you can preview board on game over screen
 // TODO: more obvious indication that you can't but thing
 // TODO: ability to customize colors
@@ -31,11 +31,6 @@ const state: AppState = {
 };
 
 // Setup screen actions
-export function selectSize(size: BoardSize): void {
-  state.selectedBoardSize = size;
-  render(state);
-}
-
 export function editName(playerIdx: 0 | 1): void {
   const currentName = state.playerNames[playerIdx];
   const newName = prompt(`Enter name for Player ${playerIdx + 1}:`, currentName);
@@ -136,6 +131,7 @@ export function cancelPlacement(): void {
 export function confirmPlacement(): void {
   if (state.gameState && state.placementState) {
     state.previewingOpponentBoard = false;
+    const playerIdx = getCurrentPlayerIndex(state.gameState);
     if (state.placingLeatherPatch) {
       // Placing a leather patch (free, no market removal)
       const success = placeLeatherPatch(
@@ -147,6 +143,8 @@ export function confirmPlacement(): void {
         state.placementState.reflected
       );
       if (success) {
+        // Check for 7x7 bonus after placing patch
+        check7x7Bonus(state.gameState, playerIdx);
         state.placementState = null;
         state.dragState = null;
         state.placingLeatherPatch = null;
@@ -164,6 +162,8 @@ export function confirmPlacement(): void {
         state.placementState.reflected
       );
       if (result.success) {
+        // Check for 7x7 bonus after placing patch
+        check7x7Bonus(state.gameState, playerIdx);
         state.placementState = null;
         state.dragState = null;
         // Queue leather patches for collection

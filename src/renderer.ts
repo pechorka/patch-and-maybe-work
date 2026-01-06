@@ -1,7 +1,7 @@
-import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player, Shape } from './types';
+import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
-  selectSize, editName, startGame, selectFirstPlayer,
+  editName, startGame, selectFirstPlayer,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
@@ -196,39 +196,6 @@ function renderSetupScreen(state: AppState): void {
     });
   }
 
-  // Board size label
-  ctx.font = '24px sans-serif';
-  ctx.fillText('Board Size:', centerX, height * 0.48);
-
-  // Board size buttons
-  const sizes: BoardSize[] = [7, 9, 11];
-  const buttonWidth = 80;
-  const buttonHeight = 50;
-  const gap = 20;
-  const totalWidth = sizes.length * buttonWidth + (sizes.length - 1) * gap;
-  const startX = centerX - totalWidth / 2;
-
-  sizes.forEach((size, i) => {
-    const x = startX + i * (buttonWidth + gap);
-    const y = height * 0.52;
-    const isSelected = state.selectedBoardSize === size;
-
-    ctx.fillStyle = isSelected ? COLORS.panelActive : COLORS.panel;
-    ctx.fillRect(x, y, buttonWidth, buttonHeight);
-
-    ctx.fillStyle = COLORS.text;
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${size}x${size}`, x + buttonWidth / 2, y + buttonHeight / 2 + 7);
-
-    buttons.push({
-      x, y, width: buttonWidth, height: buttonHeight,
-      label: `${size}x${size}`,
-      action: () => selectSize(size),
-      type: 'standard',
-    });
-  });
-
   // Start button
   const startBtnWidth = 200;
   const startBtnHeight = 60;
@@ -368,9 +335,18 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
     const incomeText = incomeDistance !== null ? `+${player.income} in ${incomeDistance}` : `+${player.income} (done)`;
     ctx.fillText(incomeText, centerX, 55);
 
-    // Turn ends info (only for current player)
+    // Turn ends info (only for current player) or 7x7 bonus indicator
     if (isActive) {
       ctx.fillText(`Turn ends in: ${overtakeDistance}`, centerX, 72);
+    }
+
+    // 7x7 bonus indicator
+    if (player.bonus7x7Area !== null) {
+      ctx.fillStyle = COLORS.bonus7x7;
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('+7 Bonus', centerX + (isActive ? 60 : 0), 72);
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '12px sans-serif';
     }
 
     // Register button for opponent's panel (tap and hold to preview their board)

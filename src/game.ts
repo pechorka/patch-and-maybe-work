@@ -36,6 +36,7 @@ export function createGameState(boardSize: BoardSize, playerNames: [string, stri
     incomePositions,
     leatherPatches,
     firstPlayerIndex,
+    bonus7x7Claimed: false,
   };
 }
 
@@ -51,23 +52,16 @@ function createPlayer(name: string, boardSize: BoardSize): Player {
     position: 0,
     board,
     placedPatches: [],
+    bonus7x7Area: null,
   };
 }
 
-function getTimeTrackLength(boardSize: BoardSize): number {
-  switch (boardSize) {
-    case 7: return 35;
-    case 9: return 53;
-    case 11: return 70;
-  }
+function getTimeTrackLength(_boardSize: BoardSize): number {
+  return 53;
 }
 
-function getIncomePositions(boardSize: BoardSize): number[] {
-  switch (boardSize) {
-    case 7: return [5, 11, 17, 23, 29, 35];
-    case 9: return [5, 11, 17, 23, 29, 35, 41, 47, 53];
-    case 11: return [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 70];
-  }
+function getIncomePositions(_boardSize: BoardSize): number[] {
+  return [5, 11, 17, 23, 29, 35, 41, 47, 53];
 }
 
 function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveResult {
@@ -278,7 +272,48 @@ export function calculateScore(player: Player): number {
     }
   }
 
-  return player.buttons - (emptySpaces * 2);
+  const bonus7x7Points = player.bonus7x7Area !== null ? 7 : 0;
+  return player.buttons - (emptySpaces * 2) + bonus7x7Points;
+}
+
+export function find7x7FilledArea(board: (number | null)[][]): { x: number; y: number } | null {
+  const boardSize = board.length;
+  // Iterate all possible 7x7 starting positions
+  for (let y = 0; y <= boardSize - 7; y++) {
+    for (let x = 0; x <= boardSize - 7; x++) {
+      let allFilled = true;
+      outer: for (let dy = 0; dy < 7; dy++) {
+        for (let dx = 0; dx < 7; dx++) {
+          if (board[y + dy][x + dx] === null) {
+            allFilled = false;
+            break outer;
+          }
+        }
+      }
+      if (allFilled) {
+        return { x, y };
+      }
+    }
+  }
+  return null;
+}
+
+export function check7x7Bonus(state: GameState, playerIndex: 0 | 1): boolean {
+  // If bonus already claimed globally, return false
+  if (state.bonus7x7Claimed) {
+    return false;
+  }
+
+  const player = state.players[playerIndex];
+  const area = find7x7FilledArea(player.board);
+
+  if (area !== null) {
+    player.bonus7x7Area = area;
+    state.bonus7x7Claimed = true;
+    return true;
+  }
+
+  return false;
 }
 
 export function getWinner(state: GameState): 0 | 1 | 'tie' {

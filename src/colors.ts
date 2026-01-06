@@ -20,6 +20,7 @@ export const COLORS = {
   ],
   ghostValid: 'rgba(46, 204, 113, 0.5)',
   ghostInvalid: 'rgba(231, 76, 60, 0.5)',
+  bonus7x7: '#f1c40f',  // Gold color for 7x7 bonus
 } as const;
 
 /**

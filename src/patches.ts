@@ -3,13 +3,9 @@ import type { BoardSize, Patch, PatchDefinition, Shape } from './types';
 // Leather patch shape - 1x1 single square (placed on time track, not in market)
 export const LEATHER_PATCH_SHAPE: Shape = [[1]];
 
-// Leather patch positions on time track for each board size
-export function getLeatherPatchPositions(boardSize: BoardSize): number[] {
-  switch (boardSize) {
-    case 7: return [8, 14, 20, 26, 32];
-    case 9: return [8, 18, 28, 38, 48];
-    case 11: return [10, 24, 38, 52, 64];
-  }
+// Leather patch positions on time track
+export function getLeatherPatchPositions(_boardSize: BoardSize): number[] {
+  return [8, 18, 28, 38, 48];
 }
 
 // Create a leather patch with the given ID (use negative IDs to distinguish from market patches)
