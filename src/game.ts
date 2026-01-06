@@ -202,16 +202,13 @@ export function buyPatch(
   // Place patch on board
   placePatchOnBoard(player, patch, x, y, rotation, reflected);
 
-  // Remove patch from market and advance market position
+  // Remove patch from market and move token to where bought patch was
   const actualIndex = (state.marketPosition + patchIndex) % state.patches.length;
   state.patches.splice(actualIndex, 1);
 
-  // Adjust market position if needed
-  if (actualIndex < state.marketPosition) {
-    state.marketPosition--;
-  }
+  // Token moves to where the bought patch was (now points to next patch in circle)
   if (state.patches.length > 0) {
-    state.marketPosition = state.marketPosition % state.patches.length;
+    state.marketPosition = actualIndex % state.patches.length;
   }
 
   return true;
