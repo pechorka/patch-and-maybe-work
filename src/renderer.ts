@@ -745,29 +745,27 @@ function renderCircularTimeTrack(
     ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(i + 1), x, y);
+    ctx.fillText(String(i + 1), x, y + 5);
   }
 
   // Draw track info in center
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
 
   if (lastTappedTrackPos !== null) {
     // Show distance from current player to tapped position
     const distance = lastTappedTrackPos - currentPlayerPos;
     const distanceText = distance > 0 ? `+${distance}` : String(distance);
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(distanceText, centerX, centerY - 10);
+    ctx.fillText(distanceText, centerX, centerY - 2);
     ctx.font = '12px sans-serif';
-    ctx.fillText('spaces', centerX, centerY + 12);
+    ctx.fillText('spaces', centerX, centerY + 16);
   } else {
     // Show track length
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText(`${trackLength}`, centerX, centerY - 10);
+    ctx.fillText(`${trackLength}`, centerX, centerY - 4);
     ctx.font = '12px sans-serif';
-    ctx.fillText('spaces', centerX, centerY + 12);
+    ctx.fillText('spaces', centerX, centerY + 16);
   }
 }
 
@@ -868,8 +866,7 @@ function renderPatchInRing(
     ctx.fillStyle = COLORS.button;
     ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(availableIndex + 1), centerX, startY - 6);
+    ctx.fillText(String(availableIndex + 1), centerX, startY - 3);
   }
 
   // Draw patch cells
@@ -898,7 +895,6 @@ function renderPatchInRing(
   ctx.fillStyle = isAvailable ? COLORS.text : adjustColorOpacity(COLORS.text, 0.5);
   ctx.font = '8px sans-serif';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 2);
+  ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 8);
 }
 
