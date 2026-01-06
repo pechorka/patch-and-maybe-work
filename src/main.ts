@@ -135,6 +135,16 @@ function handleAction(action: string): void {
       state.placementState = null;
       state.screen = 'setup';
       break;
+
+    case 'openMapView':
+      if (state.gameState) {
+        state.screen = 'mapView';
+      }
+      break;
+
+    case 'closeMapView':
+      state.screen = 'game';
+      break;
   }
 
   render(state);

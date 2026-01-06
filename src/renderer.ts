@@ -72,6 +72,9 @@ export function render(state: AppState): void {
     case 'gameEnd':
       renderGameEndScreen(state);
       break;
+    case 'mapView':
+      renderMapViewScreen(state);
+      break;
   }
 }
 
@@ -213,6 +216,26 @@ function renderGameScreen(state: AppState): void {
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
     label: 'Skip',
     action: 'skip',
+  });
+
+  // MAP button (top right corner)
+  const mapBtnWidth = 60;
+  const mapBtnHeight = 36;
+  const mapBtnX = width - mapBtnWidth - 10;
+  const mapBtnY = panelHeight + 10;
+
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(mapBtnX, mapBtnY, mapBtnWidth, mapBtnHeight);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + 5);
+
+  buttons.push({
+    x: mapBtnX, y: mapBtnY, width: mapBtnWidth, height: mapBtnHeight,
+    label: 'Map View',
+    action: 'openMapView',
   });
 }
 
@@ -589,4 +612,248 @@ function countEmptySpaces(board: (number | null)[][]): number {
     }
   }
   return count;
+}
+
+function renderMapViewScreen(state: AppState): void {
+  if (!state.gameState) return;
+
+  const game = state.gameState;
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // Calculate dimensions based on screen size
+  const minDim = Math.min(width, height);
+  const trackRadius = minDim * 0.12;
+  const patchRingRadius = minDim * 0.38;
+
+  // Render circular time track in center
+  renderCircularTimeTrack(game, centerX, centerY, trackRadius);
+
+  // Render patches arranged in a circle around the track
+  renderPatchRing(game, centerX, centerY, trackRadius + 40, patchRingRadius);
+
+  // Close button at bottom
+  const btnWidth = 120;
+  const btnHeight = 50;
+  const btnX = (width - btnWidth) / 2;
+  const btnY = height - btnHeight - 20;
+
+  ctx.fillStyle = COLORS.button;
+  ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('CLOSE', btnX + btnWidth / 2, btnY + btnHeight / 2 + 6);
+
+  buttons.push({
+    x: btnX, y: btnY, width: btnWidth, height: btnHeight,
+    label: 'Close Map View',
+    action: 'closeMapView',
+  });
+}
+
+function renderCircularTimeTrack(
+  game: GameState,
+  centerX: number,
+  centerY: number,
+  radius: number
+): void {
+  const trackLength = game.timeTrackLength;
+
+  // Draw track circle background
+  ctx.strokeStyle = COLORS.boardGrid;
+  ctx.lineWidth = 16;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Draw position markers around the circle
+  for (let pos = 0; pos <= trackLength; pos++) {
+    const angle = (pos / trackLength) * Math.PI * 2 - Math.PI / 2; // Start from top
+
+    // Income checkpoint markers (larger, different color)
+    const isIncomePos = game.incomePositions.includes(pos);
+    const dotRadius = isIncomePos ? 6 : 2;
+    const color = isIncomePos ? COLORS.buttonIndicator : COLORS.text;
+
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Draw player tokens
+  for (let i = 0; i < 2; i++) {
+    const player = game.players[i];
+    const pos = Math.min(player.position, trackLength);
+    const angle = (pos / trackLength) * Math.PI * 2 - Math.PI / 2;
+
+    // Offset tokens if players on same position
+    const samePos = game.players[0].position === game.players[1].position;
+    const offset = samePos ? (i === 0 ? -12 : 12) : 0;
+    const tokenRadius = radius + offset;
+
+    const x = centerX + Math.cos(angle) * tokenRadius;
+    const y = centerY + Math.sin(angle) * tokenRadius;
+
+    // Draw player token (colored circle)
+    ctx.fillStyle = i === 0 ? '#e74c3c' : '#3498db'; // Red for P1, Blue for P2
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Player number inside token
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1), x, y);
+  }
+
+  // Draw track info in center
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${trackLength}`, centerX, centerY - 8);
+  ctx.font = '10px sans-serif';
+  ctx.fillText('spaces', centerX, centerY + 8);
+}
+
+function renderPatchRing(
+  game: GameState,
+  centerX: number,
+  centerY: number,
+  innerRadius: number,
+  outerRadius: number
+): void {
+  const patches = game.patches;
+  const patchCount = patches.length;
+
+  if (patchCount === 0) return;
+
+  const availablePatches = getAvailablePatches(game);
+  const availablePatchIds = new Set(availablePatches.map(p => p.id));
+
+  // Calculate cell size based on patch count
+  const maxCellSize = Math.min(25, (outerRadius - innerRadius) * 0.4);
+
+  for (let i = 0; i < patchCount; i++) {
+    const angle = (i / patchCount) * Math.PI * 2 - Math.PI / 2; // Start from top
+    const patchRadius = (innerRadius + outerRadius) / 2;
+
+    const x = centerX + Math.cos(angle) * patchRadius;
+    const y = centerY + Math.sin(angle) * patchRadius;
+
+    const patch = patches[i];
+    const isAvailable = availablePatchIds.has(patch.id);
+    const availableIndex = isAvailable ? availablePatches.findIndex(p => p.id === patch.id) : -1;
+
+    renderPatchInRing(patch, x, y, maxCellSize, isAvailable, availableIndex);
+  }
+
+  // Draw market position indicator (arrow pointing to first available)
+  if (patchCount > 0) {
+    const marketAngle = (game.marketPosition / patchCount) * Math.PI * 2 - Math.PI / 2;
+    const markerRadius = innerRadius - 15;
+    const mx = centerX + Math.cos(marketAngle) * markerRadius;
+    const my = centerY + Math.sin(marketAngle) * markerRadius;
+
+    // Draw arrow pointing outward
+    ctx.fillStyle = COLORS.button;
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(marketAngle + Math.PI / 2);
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(6, 4);
+    ctx.lineTo(-6, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function renderPatchInRing(
+  patch: Patch,
+  centerX: number,
+  centerY: number,
+  maxCellSize: number,
+  isAvailable: boolean,
+  availableIndex: number
+): void {
+  const shape = patch.shape;
+  const patchHeight = shape.length;
+  const patchWidth = shape[0].length;
+
+  // Scale cell size to fit patch
+  const cellSize = Math.min(maxCellSize, maxCellSize / Math.max(patchWidth, patchHeight) * 2);
+
+  const startX = centerX - (patchWidth * cellSize) / 2;
+  const startY = centerY - (patchHeight * cellSize) / 2;
+
+  // Highlight available patches
+  if (isAvailable) {
+    ctx.strokeStyle = COLORS.button;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      startX - 4,
+      startY - 12,
+      patchWidth * cellSize + 8,
+      patchHeight * cellSize + 24
+    );
+
+    // Show availability number (1, 2, or 3)
+    ctx.fillStyle = COLORS.button;
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(availableIndex + 1), centerX, startY - 6);
+  }
+
+  // Draw patch cells
+  const patchColor = COLORS.patchColors[(patch.id - 1) % COLORS.patchColors.length];
+  ctx.fillStyle = isAvailable ? patchColor : adjustColorOpacity(patchColor, 0.4);
+
+  for (let row = 0; row < shape.length; row++) {
+    for (let col = 0; col < shape[row].length; col++) {
+      if (shape[row][col]) {
+        ctx.fillRect(
+          startX + col * cellSize + 1,
+          startY + row * cellSize + 1,
+          cellSize - 2,
+          cellSize - 2
+        );
+      }
+    }
+  }
+
+  // Draw button indicators for income
+  if (patch.buttonIncome > 0) {
+    drawButtonIndicators(shape, patch.buttonIncome, startX, startY, cellSize);
+  }
+
+  // Cost info below patch (compact)
+  ctx.fillStyle = isAvailable ? COLORS.text : adjustColorOpacity(COLORS.text, 0.5);
+  ctx.font = '8px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 2);
+}
+
+function adjustColorOpacity(color: string, opacity: number): string {
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  // Return as-is if not hex
+  return color;
 }

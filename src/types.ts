@@ -1,6 +1,6 @@
 export type BoardSize = 7 | 9 | 11;
 
-export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd';
+export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView';
 
 export interface PatchVariant {
   buttonCost: number;
