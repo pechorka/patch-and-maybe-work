@@ -19,9 +19,8 @@ let height: number;
 
 // Toggle map button constants
 const TOGGLE_MAP_BTN = {
-  width: 80,
-  height: 36,
-  y: 10,
+  width: 40,
+  gap: 10, // gap between board and button
 };
 
 // Track tapped position on time track (for distance display)
@@ -278,19 +277,24 @@ function renderGameScreen(state: AppState): void {
     type: 'standard',
   });
 
-  // Toggle map button (top right corner)
-  const mapBtnX = width - TOGGLE_MAP_BTN.width - 10;
+  // Toggle map button (snapped to right edge, same height as board)
+  const mapBtnX = width - TOGGLE_MAP_BTN.width;
+  const mapBtnHeight = boardSize;
 
   ctx.fillStyle = COLORS.panel;
-  ctx.fillRect(mapBtnX, TOGGLE_MAP_BTN.y, TOGGLE_MAP_BTN.width, TOGGLE_MAP_BTN.height);
+  ctx.fillRect(mapBtnX, boardTop, TOGGLE_MAP_BTN.width, mapBtnHeight);
 
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('toggle map', mapBtnX + TOGGLE_MAP_BTN.width / 2, TOGGLE_MAP_BTN.y + TOGGLE_MAP_BTN.height / 2 + 4);
+  ctx.save();
+  ctx.translate(mapBtnX + TOGGLE_MAP_BTN.width / 2, boardTop + mapBtnHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('toggle map', 0, 4);
+  ctx.restore();
 
   buttons.push({
-    x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
+    x: mapBtnX, y: boardTop, width: TOGGLE_MAP_BTN.width, height: mapBtnHeight,
     label: 'Toggle Map',
     action: openMapView,
     type: 'standard',
@@ -654,19 +658,28 @@ function renderMapViewScreen(state: AppState): void {
   // Render patches arranged in a circle around the track
   renderPatchRing(game, centerX, centerY, trackRadius + 50, patchRingRadius);
 
-  // Toggle map button (top right corner, same position as game screen)
-  const mapBtnX = width - TOGGLE_MAP_BTN.width - 10;
+  // Toggle map button (snapped to right edge, same height as board on game screen)
+  const panelHeight = 80;
+  const boardTop = panelHeight + 20;
+  const boardSize = Math.min(width - 40, height - panelHeight - 220);
+  const mapBtnX = width - TOGGLE_MAP_BTN.width;
+  const mapBtnY = boardTop;
+  const mapBtnHeight = boardSize;
 
   ctx.fillStyle = COLORS.panel;
-  ctx.fillRect(mapBtnX, TOGGLE_MAP_BTN.y, TOGGLE_MAP_BTN.width, TOGGLE_MAP_BTN.height);
+  ctx.fillRect(mapBtnX, mapBtnY, TOGGLE_MAP_BTN.width, mapBtnHeight);
 
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('toggle map', mapBtnX + TOGGLE_MAP_BTN.width / 2, TOGGLE_MAP_BTN.y + TOGGLE_MAP_BTN.height / 2 + 4);
+  ctx.save();
+  ctx.translate(mapBtnX + TOGGLE_MAP_BTN.width / 2, mapBtnY + mapBtnHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('toggle map', 0, 4);
+  ctx.restore();
 
   buttons.push({
-    x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
+    x: mapBtnX, y: mapBtnY, width: TOGGLE_MAP_BTN.width, height: mapBtnHeight,
     label: 'Toggle Map',
     action: closeMapView,
     type: 'standard',
