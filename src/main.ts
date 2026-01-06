@@ -3,7 +3,7 @@ import { buyPatch, canPlacePatch, collectLeatherPatch, createGameState, getAvail
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
-import { loadPlayerNames, savePlayerNames } from './storage';
+import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
 
 // TODO: bug with repeats when < 3 figures left
 // TODO: original game balance
@@ -12,7 +12,6 @@ import { loadPlayerNames, savePlayerNames } from './storage';
 // TODO: more obvious indication that you can't but thing
 // TODO: ability to view board of other player
 // TODO: ability to customize colors
-// TODO: randomize first player
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 
@@ -24,6 +23,7 @@ const state: AppState = {
   dragState: null,
   selectedBoardSize: 9,
   playerNames: loadPlayerNames(),
+  firstPlayerIndex: loadFirstPlayerPref(),
   previewPlayerIdx: null,
   pendingLeatherPatches: [],
   placingLeatherPatch: null,
@@ -45,8 +45,14 @@ export function editName(playerIdx: 0 | 1): void {
   render(state);
 }
 
+export function selectFirstPlayer(playerIdx: 0 | 1): void {
+  state.firstPlayerIndex = playerIdx;
+  saveFirstPlayerPref(playerIdx);
+  render(state);
+}
+
 export function startGame(): void {
-  state.gameState = createGameState(state.selectedBoardSize, state.playerNames);
+  state.gameState = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
   render(state);
 }

@@ -1,7 +1,7 @@
 import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
-  selectSize, editName, startGame,
+  selectSize, editName, startGame, selectFirstPlayer,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
@@ -166,6 +166,32 @@ function renderSetupScreen(state: AppState): void {
       x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
       label: state.playerNames[i],
       action: () => editName(i as 0 | 1),
+      type: 'standard',
+    });
+  }
+
+  // First player checkboxes
+  const checkboxWidth = 80;
+  const checkboxHeight = 40;
+  const checkboxY = height * 0.42;
+
+  for (let i = 0; i < 2; i++) {
+    const x = nameStartX + i * (nameButtonWidth + nameGap) + (nameButtonWidth - checkboxWidth) / 2;
+    const isSelected = state.firstPlayerIndex === i;
+
+    if (isSelected) {
+      ctx.fillStyle = COLORS.panelActive;
+      ctx.fillRect(x, checkboxY, checkboxWidth, checkboxHeight);
+    } else {
+      ctx.strokeStyle = COLORS.panel;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, checkboxY, checkboxWidth, checkboxHeight);
+    }
+
+    buttons.push({
+      x, y: checkboxY, width: checkboxWidth, height: checkboxHeight,
+      label: `First Player ${i + 1}`,
+      action: () => selectFirstPlayer(i as 0 | 1),
       type: 'standard',
     });
   }

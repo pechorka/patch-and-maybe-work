@@ -67,6 +67,7 @@ export interface GameState {
   timeTrackLength: number;
   incomePositions: number[];  // Positions on time track where income is collected
   leatherPatches: LeatherPatchOnTrack[];  // Leather patches on time track
+  firstPlayerIndex: 0 | 1;  // Which player goes first when positions are tied
 }
 
 export interface AppState {
@@ -76,6 +77,7 @@ export interface AppState {
   dragState: DragState | null;
   selectedBoardSize: BoardSize;
   playerNames: [string, string];
+  firstPlayerIndex: 0 | 1;  // Which player goes first
   previewPlayerIdx: number | null;
   pendingLeatherPatches: number[];   // Queue of leather patch positions to collect
   placingLeatherPatch: Patch | null; // Current leather patch being placed

@@ -9,7 +9,7 @@ export interface MoveResult {
 
 const STARTING_BUTTONS = 5;
 
-export function createGameState(boardSize: BoardSize, playerNames: [string, string]): GameState {
+export function createGameState(boardSize: BoardSize, playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const timeTrackLength = getTimeTrackLength(boardSize);
   const incomePositions = getIncomePositions(boardSize);
   const leatherPositions = getLeatherPatchPositions(boardSize);
@@ -35,6 +35,7 @@ export function createGameState(boardSize: BoardSize, playerNames: [string, stri
     timeTrackLength,
     incomePositions,
     leatherPatches,
+    firstPlayerIndex,
   };
 }
 
@@ -104,11 +105,14 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export function getCurrentPlayerIndex(state: GameState): 0 | 1 {
   // Player furthest behind goes next
-  // If tied, player 0 goes (they were placed "on top" in the original game)
-  if (state.players[0].position <= state.players[1].position) {
+  if (state.players[0].position < state.players[1].position) {
     return 0;
   }
-  return 1;
+  if (state.players[1].position < state.players[0].position) {
+    return 1;
+  }
+  // Tied - use firstPlayerIndex preference
+  return state.firstPlayerIndex;
 }
 
 export function getCurrentPlayer(state: GameState): Player {
