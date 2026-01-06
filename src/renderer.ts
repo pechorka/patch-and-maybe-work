@@ -497,6 +497,10 @@ function renderPlacementScreen(state: AppState): void {
 
   if (!patch) return;
 
+  // Fill background with player color
+  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
+  ctx.fillRect(0, 0, width, height);
+
   // Top buttons
   const btnHeight = 50;
   const btnWidth = width / 2 - 10;
