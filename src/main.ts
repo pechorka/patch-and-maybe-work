@@ -1,5 +1,5 @@
 import type { AppState, BoardSize, Patch } from './types';
-import { buyPatch, canPlacePatch, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead } from './game';
+import { buyPatch, collectLeatherPatch, createGameState, getAvailablePatches, isGameOver, placeLeatherPatch, skipAhead } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
@@ -8,7 +8,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: bug with repeats when < 3 figures left
 // TODO: original game balance
 // TODO: indicate that you can preview board on game over screen
-// TODO: cancel only on placements outside of the board
 // TODO: more obvious indication that you can't but thing
 // TODO: ability to customize colors
 // TODO: persist player scores
@@ -357,29 +356,42 @@ export function updateDrag(screenX: number, screenY: number): void {
 }
 
 export function endDrag(): void {
-  // Check if placement is valid
-  if (state.placementState && state.gameState) {
-    const patch = getCurrentPlacementPatch();
-    if (patch) {
-      const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
-      const playerIdx = getCurrentPlayerIndex(state.gameState);
-      const player = state.gameState.players[playerIdx];
-      const valid = canPlacePatch(player.board, shape, state.placementState.x, state.placementState.y);
+  if (!state.placementState || !state.gameState) {
+    state.dragState = null;
+    return;
+  }
 
-      if (!valid) {
-        // For leather patches, reset position instead of cancel
-        if (state.placingLeatherPatch) {
-          state.placementState.x = Math.floor(state.gameState.boardSize / 2);
-          state.placementState.y = Math.floor(state.gameState.boardSize / 2);
-          state.dragState = null;
-          render(state);
-          return;
-        }
-        cancelPlacement();  // Auto-cancel on invalid release
+  // Check if patch is completely outside board bounds - then cancel
+  const patch = getCurrentPlacementPatch();
+  if (patch) {
+    const shape = getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);
+    const boardCells = state.gameState.boardSize;
+
+    // Calculate if any part of the patch is on the board
+    const patchRight = state.placementState.x + shape[0].length;
+    const patchBottom = state.placementState.y + shape.length;
+
+    const isCompletelyOutside =
+      patchRight <= 0 ||  // entirely to the left
+      state.placementState.x >= boardCells ||  // entirely to the right
+      patchBottom <= 0 ||  // entirely above
+      state.placementState.y >= boardCells;  // entirely below
+
+    if (isCompletelyOutside) {
+      // For leather patches, reset to center instead of cancel
+      if (state.placingLeatherPatch) {
+        state.placementState.x = Math.floor(boardCells / 2);
+        state.placementState.y = Math.floor(boardCells / 2);
+        state.dragState = null;
+        render(state);
         return;
       }
+      cancelPlacement();
+      return;
     }
   }
+
+  // Patch is at least partially on board - just end drag (don't cancel even if invalid)
   state.dragState = null;
   render(state);
 }
