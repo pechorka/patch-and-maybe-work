@@ -2,7 +2,7 @@ import type { AppState, BoardSize } from './types';
 import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
-import { clearTappedTrackPosition, initRenderer, render, setTappedTrackPosition } from './renderer';
+import { clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames } from './storage';
 
 // App state
@@ -10,6 +10,7 @@ const state: AppState = {
   screen: 'setup',
   gameState: null,
   placementState: null,
+  dragState: null,
   selectedBoardSize: 9,
   playerNames: loadPlayerNames(),
   previewPlayerIdx: null,
@@ -81,6 +82,7 @@ export function openMapView(): void {
 // Placement screen actions
 export function cancelPlacement(): void {
   state.placementState = null;
+  state.dragState = null;
   state.screen = 'game';
   render(state);
 }
@@ -97,6 +99,7 @@ export function confirmPlacement(): void {
     );
     if (success) {
       state.placementState = null;
+      state.dragState = null;
       state.screen = 'game';
       checkGameEnd();
     }
@@ -182,6 +185,62 @@ export function trackPosition(pos: number): void {
 
 export function trackPositionRelease(): void {
   clearTappedTrackPosition();
+  render(state);
+}
+
+// Drag and drop functions for patch placement
+export function getAppState(): AppState {
+  return state;
+}
+
+export function isDragging(): boolean {
+  return state.dragState !== null;
+}
+
+export function startDrag(screenX: number, screenY: number): void {
+  if (!state.placementState || state.screen !== 'placement') return;
+
+  state.dragState = {
+    startScreenX: screenX,
+    startScreenY: screenY,
+    startCellX: state.placementState.x,
+    startCellY: state.placementState.y,
+  };
+  render(state);
+}
+
+export function updateDrag(screenX: number, screenY: number): void {
+  if (!state.dragState || !state.placementState || !state.gameState) return;
+
+  const layout = getPlacementBoardLayout(state.gameState);
+
+  // Calculate pixel delta from drag start
+  const deltaPixelsX = screenX - state.dragState.startScreenX;
+  const deltaPixelsY = screenY - state.dragState.startScreenY;
+
+  // Convert to cell delta
+  const deltaCellsX = Math.round(deltaPixelsX / layout.cellSize);
+  const deltaCellsY = Math.round(deltaPixelsY / layout.cellSize);
+
+  // Calculate new position
+  let newX = state.dragState.startCellX + deltaCellsX;
+  let newY = state.dragState.startCellY + deltaCellsY;
+
+  // Clamp to valid bounds (same logic as move functions)
+  const maxX = state.gameState.boardSize - 1;
+  const maxY = state.gameState.boardSize - 1;
+  newX = Math.max(-getMaxNegativeX(), Math.min(maxX, newX));
+  newY = Math.max(-getMaxNegativeY(), Math.min(maxY, newY));
+
+  // Update placement state
+  state.placementState.x = newX;
+  state.placementState.y = newY;
+
+  render(state);
+}
+
+export function endDrag(): void {
+  state.dragState = null;
   render(state);
 }
 

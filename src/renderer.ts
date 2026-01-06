@@ -47,6 +47,31 @@ let lastTappedTrackPos: number | null = null;
 // Store button positions for hit detection
 export let buttons: Button[] = [];
 
+// Board layout info for coordinate calculations
+export interface BoardLayout {
+  boardLeft: number;
+  boardTop: number;
+  boardSize: number;     // pixels
+  cellSize: number;
+  boardCells: number;    // 7, 9, or 11
+}
+
+export function getPlacementBoardLayout(gameState: GameState): BoardLayout {
+  const btnHeight = 50;
+  const boardTop = btnHeight + 20;
+  const boardPixelSize = Math.min(width - 40, height - btnHeight - 150);
+  const boardLeft = (width - boardPixelSize) / 2;
+  const cellSize = boardPixelSize / gameState.boardSize;
+
+  return {
+    boardLeft,
+    boardTop,
+    boardSize: boardPixelSize,
+    cellSize,
+    boardCells: gameState.boardSize,
+  };
+}
+
 export function initRenderer(canvasElement: HTMLCanvasElement): void {
   canvas = canvasElement;
   const context = canvas.getContext('2d');

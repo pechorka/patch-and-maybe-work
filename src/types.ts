@@ -46,6 +46,13 @@ export interface PlacementState {
   reflected: boolean;
 }
 
+export interface DragState {
+  startScreenX: number;      // Screen coords where drag started
+  startScreenY: number;
+  startCellX: number;        // Original placementState.x when drag started
+  startCellY: number;        // Original placementState.y when drag started
+}
+
 export interface GameState {
   boardSize: BoardSize;
   players: [Player, Player];
@@ -59,6 +66,7 @@ export interface AppState {
   screen: Screen;
   gameState: GameState | null;
   placementState: PlacementState | null;
+  dragState: DragState | null;
   selectedBoardSize: BoardSize;
   playerNames: [string, string];
   previewPlayerIdx: number | null;
