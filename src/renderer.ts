@@ -27,6 +27,16 @@ let ctx: CanvasRenderingContext2D;
 let width: number;
 let height: number;
 
+// Toggle map button constants
+const TOGGLE_MAP_BTN = {
+  width: 80,
+  height: 36,
+  y: 10,
+};
+
+// Track tapped position on time track (for distance display)
+let lastTappedTrackPos: number | null = null;
+
 // Store button positions for hit detection
 export let buttons: Button[] = [];
 
@@ -218,23 +228,20 @@ function renderGameScreen(state: AppState): void {
     action: 'skip',
   });
 
-  // MAP button (top right corner)
-  const mapBtnWidth = 60;
-  const mapBtnHeight = 36;
-  const mapBtnX = width - mapBtnWidth - 10;
-  const mapBtnY = panelHeight + 10;
+  // Toggle map button (top right corner)
+  const mapBtnX = width - TOGGLE_MAP_BTN.width - 10;
 
   ctx.fillStyle = COLORS.panel;
-  ctx.fillRect(mapBtnX, mapBtnY, mapBtnWidth, mapBtnHeight);
+  ctx.fillRect(mapBtnX, TOGGLE_MAP_BTN.y, TOGGLE_MAP_BTN.width, TOGGLE_MAP_BTN.height);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 14px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + 5);
+  ctx.fillText('toggle map', mapBtnX + TOGGLE_MAP_BTN.width / 2, TOGGLE_MAP_BTN.y + TOGGLE_MAP_BTN.height / 2 + 4);
 
   buttons.push({
-    x: mapBtnX, y: mapBtnY, width: mapBtnWidth, height: mapBtnHeight,
-    label: 'Map View',
+    x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
+    label: 'Toggle Map',
     action: 'openMapView',
   });
 }
@@ -623,32 +630,29 @@ function renderMapViewScreen(state: AppState): void {
 
   // Calculate dimensions based on screen size
   const minDim = Math.min(width, height);
-  const trackRadius = minDim * 0.12;
-  const patchRingRadius = minDim * 0.38;
+  const trackRadius = minDim * 0.18;
+  const patchRingRadius = minDim * 0.42;
 
   // Render circular time track in center
   renderCircularTimeTrack(game, centerX, centerY, trackRadius);
 
   // Render patches arranged in a circle around the track
-  renderPatchRing(game, centerX, centerY, trackRadius + 40, patchRingRadius);
+  renderPatchRing(game, centerX, centerY, trackRadius + 50, patchRingRadius);
 
-  // Close button at bottom
-  const btnWidth = 120;
-  const btnHeight = 50;
-  const btnX = (width - btnWidth) / 2;
-  const btnY = height - btnHeight - 20;
+  // Toggle map button (top right corner, same position as game screen)
+  const mapBtnX = width - TOGGLE_MAP_BTN.width - 10;
 
-  ctx.fillStyle = COLORS.button;
-  ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(mapBtnX, TOGGLE_MAP_BTN.y, TOGGLE_MAP_BTN.width, TOGGLE_MAP_BTN.height);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('CLOSE', btnX + btnWidth / 2, btnY + btnHeight / 2 + 6);
+  ctx.fillText('toggle map', mapBtnX + TOGGLE_MAP_BTN.width / 2, TOGGLE_MAP_BTN.y + TOGGLE_MAP_BTN.height / 2 + 4);
 
   buttons.push({
-    x: btnX, y: btnY, width: btnWidth, height: btnHeight,
-    label: 'Close Map View',
+    x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
+    label: 'Toggle Map',
     action: 'closeMapView',
   });
 }
@@ -660,21 +664,24 @@ function renderCircularTimeTrack(
   radius: number
 ): void {
   const trackLength = game.timeTrackLength;
+  const currentPlayerIdx = getCurrentPlayerIndex(game);
+  const currentPlayerPos = game.players[currentPlayerIdx].position;
 
   // Draw track circle background
   ctx.strokeStyle = COLORS.boardGrid;
-  ctx.lineWidth = 16;
+  ctx.lineWidth = 20;
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Draw position markers around the circle
+  // Draw position markers around the circle and register clickable areas
+  const hitRadius = 18; // Clickable area radius
   for (let pos = 0; pos <= trackLength; pos++) {
     const angle = (pos / trackLength) * Math.PI * 2 - Math.PI / 2; // Start from top
 
     // Income checkpoint markers (larger, different color)
     const isIncomePos = game.incomePositions.includes(pos);
-    const dotRadius = isIncomePos ? 6 : 2;
+    const dotRadius = isIncomePos ? 8 : 3;
     const color = isIncomePos ? COLORS.buttonIndicator : COLORS.text;
 
     const x = centerX + Math.cos(angle) * radius;
@@ -684,6 +691,16 @@ function renderCircularTimeTrack(
     ctx.beginPath();
     ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
     ctx.fill();
+
+    // Register clickable area for this position
+    buttons.push({
+      x: x - hitRadius,
+      y: y - hitRadius,
+      width: hitRadius * 2,
+      height: hitRadius * 2,
+      label: `Position ${pos}`,
+      action: `trackPosition:${pos}`,
+    });
   }
 
   // Draw player tokens
@@ -694,7 +711,7 @@ function renderCircularTimeTrack(
 
     // Offset tokens if players on same position
     const samePos = game.players[0].position === game.players[1].position;
-    const offset = samePos ? (i === 0 ? -12 : 12) : 0;
+    const offset = samePos ? (i === 0 ? -16 : 16) : 0;
     const tokenRadius = radius + offset;
 
     const x = centerX + Math.cos(angle) * tokenRadius;
@@ -703,12 +720,12 @@ function renderCircularTimeTrack(
     // Draw player token (colored circle)
     ctx.fillStyle = i === 0 ? '#e74c3c' : '#3498db'; // Red for P1, Blue for P2
     ctx.beginPath();
-    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
     ctx.fill();
 
     // Player number inside token
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(i + 1), x, y);
@@ -716,12 +733,34 @@ function renderCircularTimeTrack(
 
   // Draw track info in center
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`${trackLength}`, centerX, centerY - 8);
-  ctx.font = '10px sans-serif';
-  ctx.fillText('spaces', centerX, centerY + 8);
+
+  if (lastTappedTrackPos !== null) {
+    // Show distance from current player to tapped position
+    const distance = lastTappedTrackPos - currentPlayerPos;
+    const distanceText = distance > 0 ? `+${distance}` : String(distance);
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(distanceText, centerX, centerY - 10);
+    ctx.font = '12px sans-serif';
+    ctx.fillText('spaces', centerX, centerY + 12);
+  } else {
+    // Show track length
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(`${trackLength}`, centerX, centerY - 10);
+    ctx.font = '12px sans-serif';
+    ctx.fillText('spaces', centerX, centerY + 12);
+  }
+}
+
+// Export function to set tapped track position
+export function setTappedTrackPosition(pos: number | null): void {
+  lastTappedTrackPos = pos;
+}
+
+// Export function to clear tapped position (called when leaving map view)
+export function clearTappedTrackPosition(): void {
+  lastTappedTrackPos = null;
 }
 
 function renderPatchRing(

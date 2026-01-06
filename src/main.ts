@@ -2,7 +2,7 @@ import type { AppState, BoardSize } from './types';
 import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
-import { initRenderer, render } from './renderer';
+import { clearTappedTrackPosition, initRenderer, render, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames } from './storage';
 
 // App state
@@ -138,12 +138,18 @@ function handleAction(action: string): void {
 
     case 'openMapView':
       if (state.gameState) {
+        clearTappedTrackPosition();
         state.screen = 'mapView';
       }
       break;
 
     case 'closeMapView':
+      clearTappedTrackPosition();
       state.screen = 'game';
+      break;
+
+    case 'trackPosition':
+      setTappedTrackPosition(parseInt(arg));
       break;
   }
 
