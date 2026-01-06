@@ -3,7 +3,7 @@ import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerInd
 import {
   selectSize, editName, startGame,
   selectPatch, skip, openMapView,
-  cancelPlacement, confirmPlacement, moveLeft, moveRight, moveUp, moveDown, rotate, reflect,
+  cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
 } from './main';
@@ -489,32 +489,31 @@ function renderPlacementScreen(state: AppState): void {
 
   renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
-  // Control buttons at bottom
+  // Control buttons at bottom (rotate and reflect only)
   const controlY = boardTop + boardSize + 20;
-  const controlBtnSize = 60;
-  const controlGap = 10;
-  const controlsWidth = controlBtnSize * 6 + controlGap * 5;
+  const controlBtnHeight = 50;
+  const controlBtnWidth = 100;
+  const controlGap = 20;
+  const controlsWidth = controlBtnWidth * 2 + controlGap;
   const controlsStartX = (width - controlsWidth) / 2;
 
-  const controls = [
-    { label: '<', action: moveLeft },
-    { label: '^', action: moveUp },
-    { label: 'R', action: rotate },
-    { label: 'F', action: reflect },
-    { label: 'v', action: moveDown },
-    { label: '>', action: moveRight },
-  ];
+  // Rotate button
+  const rotateBtnX = controlsStartX;
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(rotateBtnX, controlY, controlBtnWidth, controlBtnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Rotate', rotateBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
+  buttons.push({ x: rotateBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Rotate', action: rotate });
 
-  controls.forEach((ctrl, i) => {
-    const btnX = controlsStartX + i * (controlBtnSize + controlGap);
-    ctx.fillStyle = COLORS.panel;
-    ctx.fillRect(btnX, controlY, controlBtnSize, controlBtnSize);
-    ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(ctrl.label, btnX + controlBtnSize / 2, controlY + controlBtnSize / 2 + 8);
-    buttons.push({ x: btnX, y: controlY, width: controlBtnSize, height: controlBtnSize, label: ctrl.label, action: ctrl.action });
-  });
+  // Reflect button
+  const reflectBtnX = controlsStartX + controlBtnWidth + controlGap;
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(reflectBtnX, controlY, controlBtnWidth, controlBtnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText('Reflect', reflectBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
+  buttons.push({ x: reflectBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Reflect', action: reflect });
 }
 
 function renderBoardWithGhost(
