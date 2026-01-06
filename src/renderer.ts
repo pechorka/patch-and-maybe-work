@@ -4,7 +4,7 @@ import {
   selectSize, editName, startGame,
   selectPatch, skip, openMapView,
   cancelPlacement, confirmPlacement, moveLeft, moveRight, moveUp, moveDown, rotate, reflect,
-  playAgain,
+  playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
 } from './main';
 import { reflectPatch, rotatePatch } from './patches';
@@ -91,6 +91,9 @@ export function render(state: AppState): void {
       break;
     case 'mapView':
       renderMapViewScreen(state);
+      break;
+    case 'boardPreview':
+      renderBoardPreview(state);
       break;
   }
 }
@@ -577,9 +580,13 @@ function renderGameEndScreen(state: AppState): void {
     const isWinner = winner === i;
 
     const yPos = height * 0.35 + i * 100;
+    const panelX = centerX - 150;
+    const panelY = yPos - 30;
+    const panelWidth = 300;
+    const panelHeight = 80;
 
     ctx.fillStyle = isWinner ? COLORS.panelActive : COLORS.panel;
-    ctx.fillRect(centerX - 150, yPos - 30, 300, 80);
+    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
     ctx.font = isWinner ? 'bold 24px sans-serif' : '24px sans-serif';
@@ -590,6 +597,14 @@ function renderGameEndScreen(state: AppState): void {
 
     const emptySpaces = countEmptySpaces(player.board);
     ctx.fillText(`(${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, yPos + 30);
+
+    // Make panel clickable to preview board
+    const playerIdx = i;
+    buttons.push({
+      x: panelX, y: panelY, width: panelWidth, height: panelHeight,
+      label: `Preview ${player.name}`,
+      action: () => previewBoard(playerIdx),
+    });
   }
 
   if (winner === 'tie') {
@@ -626,6 +641,51 @@ function countEmptySpaces(board: (number | null)[][]): number {
     }
   }
   return count;
+}
+
+function renderBoardPreview(state: AppState): void {
+  if (!state.gameState || state.previewPlayerIdx === null) return;
+
+  const game = state.gameState;
+  const player = game.players[state.previewPlayerIdx];
+  const centerX = width / 2;
+
+  // Title with player name
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${player.name}'s Board`, centerX, height * 0.08);
+
+  // Score summary
+  const score = calculateScore(player);
+  const emptySpaces = countEmptySpaces(player.board);
+  ctx.font = '20px sans-serif';
+  ctx.fillText(`Score: ${score} (${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, height * 0.14);
+
+  // Render board large and centered
+  const boardSize = Math.min(width * 0.85, height * 0.65);
+  const boardX = centerX - boardSize / 2;
+  const boardY = height * 0.18;
+  renderBoard(player, boardX, boardY, boardSize);
+
+  // Back button
+  const btnWidth = 150;
+  const btnHeight = 50;
+  const btnX = centerX - btnWidth / 2;
+  const btnY = height * 0.9;
+
+  ctx.fillStyle = COLORS.button;
+  ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('BACK', centerX, btnY + btnHeight / 2 + 7);
+
+  buttons.push({
+    x: btnX, y: btnY, width: btnWidth, height: btnHeight,
+    label: 'Back',
+    action: backToGameEnd,
+  });
 }
 
 function renderMapViewScreen(state: AppState): void {

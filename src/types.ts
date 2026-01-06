@@ -1,6 +1,6 @@
 export type BoardSize = 7 | 9 | 11;
 
-export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView';
+export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview';
 
 export interface PatchVariant {
   buttonCost: number;
@@ -61,6 +61,7 @@ export interface AppState {
   placementState: PlacementState | null;
   selectedBoardSize: BoardSize;
   playerNames: [string, string];
+  previewPlayerIdx: number | null;
 }
 
 export interface Button {

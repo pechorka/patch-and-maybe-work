@@ -12,6 +12,7 @@ const state: AppState = {
   placementState: null,
   selectedBoardSize: 9,
   playerNames: loadPlayerNames(),
+  previewPlayerIdx: null,
 };
 
 // Setup screen actions
@@ -152,6 +153,18 @@ export function playAgain(): void {
   state.gameState = null;
   state.placementState = null;
   state.screen = 'setup';
+  render(state);
+}
+
+export function previewBoard(playerIdx: number): void {
+  state.previewPlayerIdx = playerIdx;
+  state.screen = 'boardPreview';
+  render(state);
+}
+
+export function backToGameEnd(): void {
+  state.previewPlayerIdx = null;
+  state.screen = 'gameEnd';
   render(state);
 }
 
