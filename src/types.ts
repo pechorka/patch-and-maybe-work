@@ -69,5 +69,5 @@ export interface Button {
   width: number;
   height: number;
   label: string;
-  action: string;
+  action: () => void;
 }

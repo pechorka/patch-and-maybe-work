@@ -1,5 +1,4 @@
 import type { AppState, BoardSize } from './types';
-import { ACTIONS } from './actions';
 import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
@@ -15,149 +14,161 @@ const state: AppState = {
   playerNames: loadPlayerNames(),
 };
 
-function handleAction(action: string): void {
-  const [cmd, arg] = action.split(':');
+// Setup screen actions
+export function selectSize(size: BoardSize): void {
+  state.selectedBoardSize = size;
+  render(state);
+}
 
-  switch (cmd) {
-    case ACTIONS.SELECT_SIZE:
-      state.selectedBoardSize = parseInt(arg) as BoardSize;
-      break;
-
-    case ACTIONS.EDIT_NAME: {
-      const playerIdx = parseInt(arg) as 0 | 1;
-      const currentName = state.playerNames[playerIdx];
-      const newName = prompt(`Enter name for Player ${playerIdx + 1}:`, currentName);
-      if (newName !== null && newName.trim() !== '') {
-        state.playerNames[playerIdx] = newName.trim().slice(0, 20);
-        savePlayerNames(state.playerNames);
-      }
-      break;
-    }
-
-    case ACTIONS.START_GAME:
-      state.gameState = createGameState(state.selectedBoardSize, state.playerNames);
-      state.screen = 'game';
-      break;
-
-    case ACTIONS.SELECT_PATCH:
-      if (state.gameState) {
-        const patchIndex = parseInt(arg);
-        const patches = getAvailablePatches(state.gameState);
-        const patch = patches[patchIndex];
-        if (patch) {
-          // Center the patch on the board initially
-          const shape = patch.shape;
-          const boardSize = state.gameState.boardSize;
-          const x = Math.floor((boardSize - shape[0].length) / 2);
-          const y = Math.floor((boardSize - shape.length) / 2);
-
-          state.placementState = {
-            patchIndex,
-            x,
-            y,
-            rotation: 0,
-            reflected: false,
-          };
-          state.screen = 'placement';
-        }
-      }
-      break;
-
-    case ACTIONS.SKIP:
-      if (state.gameState) {
-        skipAhead(state.gameState);
-        checkGameEnd();
-      }
-      break;
-
-    case ACTIONS.CANCEL_PLACEMENT:
-      state.placementState = null;
-      state.screen = 'game';
-      break;
-
-    case ACTIONS.CONFIRM_PLACEMENT:
-      if (state.gameState && state.placementState) {
-        const success = buyPatch(
-          state.gameState,
-          state.placementState.patchIndex,
-          state.placementState.x,
-          state.placementState.y,
-          state.placementState.rotation,
-          state.placementState.reflected
-        );
-        if (success) {
-          state.placementState = null;
-          state.screen = 'game';
-          checkGameEnd();
-        }
-      }
-      break;
-
-    case ACTIONS.MOVE_LEFT:
-      if (state.placementState) {
-        state.placementState.x = Math.max(-getMaxNegativeX(), state.placementState.x - 1);
-      }
-      break;
-
-    case ACTIONS.MOVE_RIGHT:
-      if (state.placementState && state.gameState) {
-        const maxX = state.gameState.boardSize - 1;
-        state.placementState.x = Math.min(maxX, state.placementState.x + 1);
-      }
-      break;
-
-    case ACTIONS.MOVE_UP:
-      if (state.placementState) {
-        state.placementState.y = Math.max(-getMaxNegativeY(), state.placementState.y - 1);
-      }
-      break;
-
-    case ACTIONS.MOVE_DOWN:
-      if (state.placementState && state.gameState) {
-        const maxY = state.gameState.boardSize - 1;
-        state.placementState.y = Math.min(maxY, state.placementState.y + 1);
-      }
-      break;
-
-    case ACTIONS.ROTATE:
-      if (state.placementState) {
-        state.placementState.rotation = (state.placementState.rotation + 1) % 4;
-      }
-      break;
-
-    case ACTIONS.REFLECT:
-      if (state.placementState) {
-        state.placementState.reflected = !state.placementState.reflected;
-      }
-      break;
-
-    case ACTIONS.PLAY_AGAIN:
-      state.gameState = null;
-      state.placementState = null;
-      state.screen = 'setup';
-      break;
-
-    case ACTIONS.OPEN_MAP_VIEW:
-      if (state.gameState) {
-        clearTappedTrackPosition();
-        state.screen = 'mapView';
-      }
-      break;
-
-    case ACTIONS.CLOSE_MAP_VIEW:
-      clearTappedTrackPosition();
-      state.screen = 'game';
-      break;
-
-    case ACTIONS.TRACK_POSITION:
-      setTappedTrackPosition(parseInt(arg));
-      break;
-
-    case ACTIONS.TRACK_POSITION_RELEASE:
-      clearTappedTrackPosition();
-      break;
+export function editName(playerIdx: 0 | 1): void {
+  const currentName = state.playerNames[playerIdx];
+  const newName = prompt(`Enter name for Player ${playerIdx + 1}:`, currentName);
+  if (newName !== null && newName.trim() !== '') {
+    state.playerNames[playerIdx] = newName.trim().slice(0, 20);
+    savePlayerNames(state.playerNames);
   }
+  render(state);
+}
 
+export function startGame(): void {
+  state.gameState = createGameState(state.selectedBoardSize, state.playerNames);
+  state.screen = 'game';
+  render(state);
+}
+
+// Game screen actions
+export function selectPatch(patchIndex: number): void {
+  if (state.gameState) {
+    const patches = getAvailablePatches(state.gameState);
+    const patch = patches[patchIndex];
+    if (patch) {
+      // Center the patch on the board initially
+      const shape = patch.shape;
+      const boardSize = state.gameState.boardSize;
+      const x = Math.floor((boardSize - shape[0].length) / 2);
+      const y = Math.floor((boardSize - shape.length) / 2);
+
+      state.placementState = {
+        patchIndex,
+        x,
+        y,
+        rotation: 0,
+        reflected: false,
+      };
+      state.screen = 'placement';
+    }
+  }
+  render(state);
+}
+
+export function skip(): void {
+  if (state.gameState) {
+    skipAhead(state.gameState);
+    checkGameEnd();
+  }
+  render(state);
+}
+
+export function openMapView(): void {
+  if (state.gameState) {
+    clearTappedTrackPosition();
+    state.screen = 'mapView';
+  }
+  render(state);
+}
+
+// Placement screen actions
+export function cancelPlacement(): void {
+  state.placementState = null;
+  state.screen = 'game';
+  render(state);
+}
+
+export function confirmPlacement(): void {
+  if (state.gameState && state.placementState) {
+    const success = buyPatch(
+      state.gameState,
+      state.placementState.patchIndex,
+      state.placementState.x,
+      state.placementState.y,
+      state.placementState.rotation,
+      state.placementState.reflected
+    );
+    if (success) {
+      state.placementState = null;
+      state.screen = 'game';
+      checkGameEnd();
+    }
+  }
+  render(state);
+}
+
+export function moveLeft(): void {
+  if (state.placementState) {
+    state.placementState.x = Math.max(-getMaxNegativeX(), state.placementState.x - 1);
+  }
+  render(state);
+}
+
+export function moveRight(): void {
+  if (state.placementState && state.gameState) {
+    const maxX = state.gameState.boardSize - 1;
+    state.placementState.x = Math.min(maxX, state.placementState.x + 1);
+  }
+  render(state);
+}
+
+export function moveUp(): void {
+  if (state.placementState) {
+    state.placementState.y = Math.max(-getMaxNegativeY(), state.placementState.y - 1);
+  }
+  render(state);
+}
+
+export function moveDown(): void {
+  if (state.placementState && state.gameState) {
+    const maxY = state.gameState.boardSize - 1;
+    state.placementState.y = Math.min(maxY, state.placementState.y + 1);
+  }
+  render(state);
+}
+
+export function rotate(): void {
+  if (state.placementState) {
+    state.placementState.rotation = (state.placementState.rotation + 1) % 4;
+  }
+  render(state);
+}
+
+export function reflect(): void {
+  if (state.placementState) {
+    state.placementState.reflected = !state.placementState.reflected;
+  }
+  render(state);
+}
+
+// Game end screen actions
+export function playAgain(): void {
+  state.gameState = null;
+  state.placementState = null;
+  state.screen = 'setup';
+  render(state);
+}
+
+// Map view screen actions
+export function closeMapView(): void {
+  clearTappedTrackPosition();
+  state.screen = 'game';
+  render(state);
+}
+
+export function trackPosition(pos: number): void {
+  setTappedTrackPosition(pos);
+  render(state);
+}
+
+export function trackPositionRelease(): void {
+  clearTappedTrackPosition();
   render(state);
 }
 
@@ -214,7 +225,7 @@ function init(): void {
   }
 
   initRenderer(canvas);
-  initInput(canvas, handleAction);
+  initInput(canvas);
   gameLoop();
 }
 

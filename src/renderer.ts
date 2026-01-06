@@ -1,6 +1,12 @@
 import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
-import { ACTIONS, action } from './actions';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
+import {
+  selectSize, editName, startGame,
+  selectPatch, skip, openMapView,
+  cancelPlacement, confirmPlacement, moveLeft, moveRight, moveUp, moveDown, rotate, reflect,
+  playAgain,
+  closeMapView, trackPosition,
+} from './main';
 import { reflectPatch, rotatePatch } from './patches';
 
 // Colors
@@ -127,7 +133,7 @@ function renderSetupScreen(state: AppState): void {
     buttons.push({
       x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
       label: state.playerNames[i],
-      action: action(ACTIONS.EDIT_NAME, i),
+      action: () => editName(i as 0 | 1),
     });
   }
 
@@ -159,7 +165,7 @@ function renderSetupScreen(state: AppState): void {
     buttons.push({
       x, y, width: buttonWidth, height: buttonHeight,
       label: `${size}x${size}`,
-      action: action(ACTIONS.SELECT_SIZE, size),
+      action: () => selectSize(size),
     });
   });
 
@@ -179,7 +185,7 @@ function renderSetupScreen(state: AppState): void {
   buttons.push({
     x: startBtnX, y: startBtnY, width: startBtnWidth, height: startBtnHeight,
     label: 'Start Game',
-    action: ACTIONS.START_GAME,
+    action: startGame,
   });
 }
 
@@ -226,7 +232,7 @@ function renderGameScreen(state: AppState): void {
   buttons.push({
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
     label: 'Skip',
-    action: ACTIONS.SKIP,
+    action: skip,
   });
 
   // Toggle map button (top right corner)
@@ -243,7 +249,7 @@ function renderGameScreen(state: AppState): void {
   buttons.push({
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
-    action: ACTIONS.OPEN_MAP_VIEW,
+    action: openMapView,
   });
 }
 
@@ -402,7 +408,7 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
       buttons.push({
         x: patchX + 5, y, width: patchAreaWidth - 10, height: patchAreaHeight,
         label: `Patch ${i + 1}`,
-        action: action(ACTIONS.SELECT_PATCH, i),
+        action: () => selectPatch(i),
       });
     }
   });
@@ -431,7 +437,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
-  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: ACTIONS.CANCEL_PLACEMENT });
+  buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement });
 
   // Confirm button
   let shape = rotatePatch(patch.shape, placement.rotation);
@@ -445,7 +451,7 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = COLORS.text;
   ctx.fillText('CONFIRM', width / 2 + 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
   if (canPlace) {
-    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: ACTIONS.CONFIRM_PLACEMENT });
+    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement });
   }
 
   // Board with ghost
@@ -463,12 +469,12 @@ function renderPlacementScreen(state: AppState): void {
   const controlsStartX = (width - controlsWidth) / 2;
 
   const controls = [
-    { label: '<', action: ACTIONS.MOVE_LEFT },
-    { label: '^', action: ACTIONS.MOVE_UP },
-    { label: 'R', action: ACTIONS.ROTATE },
-    { label: 'F', action: ACTIONS.REFLECT },
-    { label: 'v', action: ACTIONS.MOVE_DOWN },
-    { label: '>', action: ACTIONS.MOVE_RIGHT },
+    { label: '<', action: moveLeft },
+    { label: '^', action: moveUp },
+    { label: 'R', action: rotate },
+    { label: 'F', action: reflect },
+    { label: 'v', action: moveDown },
+    { label: '>', action: moveRight },
   ];
 
   controls.forEach((ctrl, i) => {
@@ -608,7 +614,7 @@ function renderGameEndScreen(state: AppState): void {
   buttons.push({
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
     label: 'Play Again',
-    action: ACTIONS.PLAY_AGAIN,
+    action: playAgain,
   });
 }
 
@@ -654,7 +660,7 @@ function renderMapViewScreen(state: AppState): void {
   buttons.push({
     x: mapBtnX, y: TOGGLE_MAP_BTN.y, width: TOGGLE_MAP_BTN.width, height: TOGGLE_MAP_BTN.height,
     label: 'Toggle Map',
-    action: ACTIONS.CLOSE_MAP_VIEW,
+    action: closeMapView,
   });
 }
 
@@ -700,7 +706,7 @@ function renderCircularTimeTrack(
       width: hitRadius * 2,
       height: hitRadius * 2,
       label: `Position ${pos}`,
-      action: action(ACTIONS.TRACK_POSITION, pos),
+      action: () => trackPosition(pos),
     });
   }
 

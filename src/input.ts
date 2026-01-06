@@ -1,14 +1,8 @@
 import type { Button } from './types';
 import { buttons } from './renderer';
-import { ACTIONS } from './actions';
+import { trackPositionRelease } from './main';
 
-export type InputHandler = (action: string) => void;
-
-let handler: InputHandler | null = null;
-
-export function initInput(canvas: HTMLCanvasElement, inputHandler: InputHandler): void {
-  handler = inputHandler;
-
+export function initInput(canvas: HTMLCanvasElement): void {
   canvas.addEventListener('click', handleClick);
   canvas.addEventListener('touchend', handleTouch);
 
@@ -43,17 +37,21 @@ function handleTouchStart(e: TouchEvent): void {
 }
 
 function handleRelease(): void {
-  handler?.(ACTIONS.TRACK_POSITION_RELEASE);
+  trackPositionRelease();
+}
+
+function isTrackPositionButton(button: Button): boolean {
+  return button.label.startsWith('Position ');
 }
 
 function checkHit(x: number, y: number): void {
   for (const button of buttons) {
     // Skip track position buttons - they're handled by press/release
-    if (button.action.startsWith(ACTIONS.TRACK_POSITION + ':')) {
+    if (isTrackPositionButton(button)) {
       continue;
     }
     if (isInside(x, y, button)) {
-      handler?.(button.action);
+      button.action();
       return;
     }
   }
@@ -61,8 +59,8 @@ function checkHit(x: number, y: number): void {
 
 function checkTrackPositionHit(x: number, y: number): void {
   for (const button of buttons) {
-    if (isInside(x, y, button) && button.action.startsWith(ACTIONS.TRACK_POSITION + ':')) {
-      handler?.(button.action);
+    if (isInside(x, y, button) && isTrackPositionButton(button)) {
+      button.action();
       return;
     }
   }
