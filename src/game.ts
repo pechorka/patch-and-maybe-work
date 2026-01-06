@@ -1,4 +1,4 @@
-import type { BoardSize, GameState, LeatherPatchOnTrack, Patch, Player } from './types';
+import type { BoardSize, GameState, LeatherPatchOnTrack, Patch, Player, Shape } from './types';
 import { createLeatherPatch, getLeatherPatchPositions, PATCH_DEFINITIONS } from './patches';
 import { getOpponentIndex } from './player-utils';
 import { getTransformedShape } from './shape-utils';
@@ -141,7 +141,7 @@ export function canAfford(state: GameState, patchIndex: number): boolean {
 
 export function canPlacePatch(
   board: (number | null)[][],
-  shape: boolean[][],
+  shape: Shape,
   x: number,
   y: number
 ): boolean {

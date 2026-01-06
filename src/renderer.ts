@@ -1,4 +1,4 @@
-import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player } from './types';
+import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Player, Shape } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
   selectSize, editName, startGame, selectFirstPlayer,
@@ -68,7 +68,7 @@ export function screenToCellCoords(
 export function centerShapeOnCell(
   cellX: number,
   cellY: number,
-  shape: boolean[][]
+  shape: Shape
 ): { x: number; y: number } {
   return {
     x: Math.round(cellX - shape[0].length / 2),
@@ -389,7 +389,7 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
   }
 }
 
-function getFilledCells(shape: boolean[][]): {row: number, col: number}[] {
+function getFilledCells(shape: Shape): {row: number, col: number}[] {
   const cells: {row: number, col: number}[] = [];
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
@@ -400,7 +400,7 @@ function getFilledCells(shape: boolean[][]): {row: number, col: number}[] {
 }
 
 function drawButtonIndicators(
-  shape: boolean[][],
+  shape: Shape,
   buttonIncome: number,
   startX: number,
   startY: number,

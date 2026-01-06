@@ -1,7 +1,7 @@
-import type { BoardSize, Patch, PatchDefinition } from './types';
+import type { BoardSize, Patch, PatchDefinition, Shape } from './types';
 
 // Leather patch shape - 1x1 single square (placed on time track, not in market)
-export const LEATHER_PATCH_SHAPE: boolean[][] = [[true]];
+export const LEATHER_PATCH_SHAPE: Shape = [[1]];
 
 // Leather patch positions on time track for each board size
 export function getLeatherPatchPositions(boardSize: BoardSize): number[] {
@@ -24,14 +24,14 @@ export function createLeatherPatch(id: number): Patch {
 }
 
 // Original Patchwork game patches (33 total)
-// Each shape is a 2D boolean array: true = filled, false = empty
+// Each shape is a 2D array: 1 = filled, 0 = empty
 // Patches with same shape but different costs are grouped as variants
 export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   {
     shape: [
-      [true],
-      [true],
-      [true],
+      [1],
+      [1],
+      [1],
     ],
     variants: [
       { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
@@ -39,9 +39,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [true, true],
-      [true, false],
+      [0, 1],
+      [1, 1],
+      [1, 0],
     ],
     variants: [
       { buttonCost: 3, timeCost: 2, buttonIncome: 1 },
@@ -50,9 +50,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false],
-      [true, true],
-      [true, true],
+      [1, 0],
+      [1, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
@@ -60,9 +60,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, false, true, false, false],
-      [true, true, true, true, true],
-      [false, false, true, false, false],
+      [0, 0, 1, 0, 0],
+      [1, 1, 1, 1, 1],
+      [0, 0, 1, 0, 0],
     ],
     variants: [
       { buttonCost: 1, timeCost: 4, buttonIncome: 1 },
@@ -70,8 +70,8 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true],
-      [true],
+      [1],
+      [1],
     ],
     variants: [
       { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
@@ -79,18 +79,18 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [true, true],
+      [0, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 1, timeCost: 3, buttonIncome: 0 }, { buttonCost: 3, timeCost: 1, buttonIncome: 0 },],
   },
   {
     shape: [
-      [false, true, false],
-      [true, true, true],
-      [false, true, false],
-      [false, true, false],
+      [0, 1, 0],
+      [1, 1, 1],
+      [0, 1, 0],
+      [0, 1, 0],
     ],
     variants: [
       { buttonCost: 0, timeCost: 3, buttonIncome: 1 },
@@ -98,10 +98,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false],
-      [true, true],
-      [true, true],
-      [false, true],
+      [1, 0],
+      [1, 1],
+      [1, 1],
+      [0, 1],
     ],
     variants: [
       { buttonCost: 4, timeCost: 2, buttonIncome: 0 },
@@ -109,10 +109,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, true],
-      [false, true],
-      [false, true],
-      [true, true],
+      [1, 1],
+      [0, 1],
+      [0, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 1, timeCost: 5, buttonIncome: 1 },
@@ -120,10 +120,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true],
-      [true],
-      [true],
-      [true],
+      [1],
+      [1],
+      [1],
+      [1],
     ],
     variants: [
       { buttonCost: 3, timeCost: 3, buttonIncome: 1 },
@@ -131,9 +131,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [true, true],
-      [false, true],
+      [0, 1],
+      [1, 1],
+      [0, 1],
     ],
     variants: [
       { buttonCost: 2, timeCost: 2, buttonIncome: 0 },
@@ -141,8 +141,8 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, true],
-      [true, true],
+      [1, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 6, timeCost: 5, buttonIncome: 2 },
@@ -150,10 +150,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false],
-      [true, false],
-      [true, true],
-      [true, false],
+      [1, 0],
+      [1, 0],
+      [1, 1],
+      [1, 0],
     ],
     variants: [
       { buttonCost: 3, timeCost: 4, buttonIncome: 1 },
@@ -161,10 +161,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false],
-      [true, true],
-      [true, true],
-      [true, false],
+      [1, 0],
+      [1, 1],
+      [1, 1],
+      [1, 0],
     ],
     variants: [
       { buttonCost: 7, timeCost: 4, buttonIncome: 2 },
@@ -172,10 +172,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [false, true, true],
-      [true, true, false],
-      [false, true, false],
+      [0, 1, 0],
+      [0, 1, 1],
+      [1, 1, 0],
+      [0, 1, 0],
     ],
     variants: [
       { buttonCost: 2, timeCost: 1, buttonIncome: 0 },
@@ -183,9 +183,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [true, true, true],
-      [true, false, true],
+      [0, 1, 0],
+      [1, 1, 1],
+      [1, 0, 1],
     ],
     variants: [
       { buttonCost: 3, timeCost: 6, buttonIncome: 2 },
@@ -193,7 +193,7 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, true, true, true, true],
+      [1, 1, 1, 1, 1],
     ],
     variants: [
       { buttonCost: 7, timeCost: 1, buttonIncome: 1 },
@@ -201,10 +201,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [true, true, true],
-      [true, true, true],
-      [false, true, false],
+      [0, 1, 0],
+      [1, 1, 1],
+      [1, 1, 1],
+      [0, 1, 0],
     ],
     variants: [
       { buttonCost: 5, timeCost: 3, buttonIncome: 1 },
@@ -212,10 +212,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [false, true],
-      [false, true],
-      [true, true],
+      [0, 1],
+      [0, 1],
+      [0, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 10, timeCost: 3, buttonIncome: 2 },
@@ -223,9 +223,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [false, true],
-      [true, true],
+      [0, 1],
+      [0, 1],
+      [1, 1],
     ],
     variants: [
       { buttonCost: 4, timeCost: 6, buttonIncome: 2 },
@@ -234,9 +234,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [true, true, true],
-      [false, true, false],
+      [0, 1, 0],
+      [1, 1, 1],
+      [0, 1, 0],
     ],
     variants: [
       { buttonCost: 5, timeCost: 4, buttonIncome: 2 },
@@ -244,9 +244,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false, true],
-      [true, true, true],
-      [true, false, true],
+      [1, 0, 1],
+      [1, 1, 1],
+      [1, 0, 1],
     ],
     variants: [
       { buttonCost: 2, timeCost: 3, buttonIncome: 0 },
@@ -254,9 +254,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [false, true, false],
-      [true, true, true],
+      [0, 1, 0],
+      [0, 1, 0],
+      [1, 1, 1],
     ],
     variants: [
       { buttonCost: 5, timeCost: 5, buttonIncome: 2 },
@@ -264,10 +264,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, true],
-      [true, true],
-      [false, true],
-      [false, true],
+      [1, 1],
+      [1, 1],
+      [0, 1],
+      [0, 1],
     ],
     variants: [
       { buttonCost: 10, timeCost: 5, buttonIncome: 3 },
@@ -275,10 +275,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, true, false],
-      [false, true, false],
-      [false, true, false],
-      [false, true, true],
+      [1, 1, 0],
+      [0, 1, 0],
+      [0, 1, 0],
+      [0, 1, 1],
     ],
     variants: [
       { buttonCost: 1, timeCost: 2, buttonIncome: 0 },
@@ -286,10 +286,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, false],
-      [false, true, false],
-      [false, true, false],
-      [true, true, true],
+      [0, 1, 0],
+      [0, 1, 0],
+      [0, 1, 0],
+      [1, 1, 1],
     ],
     variants: [
       { buttonCost: 7, timeCost: 2, buttonIncome: 2 },
@@ -297,9 +297,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false, false],
-      [true, true, false],
-      [false, true, true],
+      [1, 0, 0],
+      [1, 1, 0],
+      [0, 1, 1],
     ],
     variants: [
       { buttonCost: 10, timeCost: 4, buttonIncome: 3 },
@@ -307,8 +307,8 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [true, false, true],
-      [true, true, true],
+      [1, 0, 1],
+      [1, 1, 1],
     ],
     variants: [
       { buttonCost: 1, timeCost: 2, buttonIncome: 0 },
@@ -316,10 +316,10 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true],
-      [false, true],
-      [true, true],
-      [true, false],
+      [0, 1],
+      [0, 1],
+      [1, 1],
+      [1, 0],
     ],
     variants: [
       { buttonCost: 2, timeCost: 3, buttonIncome: 1 },
@@ -327,9 +327,9 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
   {
     shape: [
-      [false, true, true],
-      [false, true, true],
-      [true, true, false],
+      [0, 1, 1],
+      [0, 1, 1],
+      [1, 1, 0],
     ],
     variants: [
       { buttonCost: 8, timeCost: 6, buttonIncome: 3 },
@@ -337,7 +337,7 @@ export const PATCH_SHAPE_DEFINITIONS: PatchDefinition[] = [
   },
 ];
 
-function shapeToString(shape: boolean[][]): string {
+function shapeToString(shape: Shape): string {
   return shape.map(row => row.map(cell => cell ? '1' : '0').join('')).join('|');
 }
 
@@ -388,7 +388,7 @@ export function createPatchesFromDefinitions(definitions: PatchDefinition[]): Pa
 // Keep PATCH_DEFINITIONS for backwards compatibility
 export const PATCH_DEFINITIONS: Patch[] = createPatchesFromDefinitions(PATCH_SHAPE_DEFINITIONS);
 
-export function rotatePatch(shape: boolean[][], times: number): boolean[][] {
+export function rotatePatch(shape: Shape, times: number): Shape {
   let result = shape;
   for (let i = 0; i < times % 4; i++) {
     result = rotateOnce(result);
@@ -396,17 +396,17 @@ export function rotatePatch(shape: boolean[][], times: number): boolean[][] {
   return result;
 }
 
-export function reflectPatch(shape: boolean[][]): boolean[][] {
+export function reflectPatch(shape: Shape): Shape {
   return shape.map(row => [...row].reverse());
 }
 
-function rotateOnce(shape: boolean[][]): boolean[][] {
+function rotateOnce(shape: Shape): Shape {
   const rows = shape.length;
   const cols = shape[0].length;
-  const rotated: boolean[][] = [];
+  const rotated: Shape = [];
 
   for (let c = 0; c < cols; c++) {
-    const newRow: boolean[] = [];
+    const newRow: (0 | 1)[] = [];
     for (let r = rows - 1; r >= 0; r--) {
       newRow.push(shape[r][c]);
     }
@@ -416,7 +416,7 @@ function rotateOnce(shape: boolean[][]): boolean[][] {
   return rotated;
 }
 
-export function getPatchDimensions(shape: boolean[][]): { width: number; height: number } {
+export function getPatchDimensions(shape: Shape): { width: number; height: number } {
   return {
     height: shape.length,
     width: shape[0]?.length ?? 0,

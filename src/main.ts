@@ -1,4 +1,4 @@
-import type { AppState, BoardSize, Patch } from './types';
+import type { AppState, BoardSize, Patch, Shape } from './types';
 import { buyPatch, collectLeatherPatch, createGameState, getAvailablePatches, isGameOver, placeLeatherPatch, skipAhead } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
@@ -12,6 +12,8 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: ability to customize colors
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
+// TODO: confirm before skiping turn
+// TODO: autoskip if player can't buy anything
 
 // App state
 const state: AppState = {
@@ -405,7 +407,7 @@ function getCurrentPlacementPatch(): Patch | undefined {
   return patches[state.placementState.patchIndex];
 }
 
-function getCurrentTransformedShape(): boolean[][] {
+function getCurrentTransformedShape(): Shape {
   const patch = getCurrentPlacementPatch();
   if (!patch || !state.placementState) return [[]];
   return getTransformedShape(patch.shape, state.placementState.rotation, state.placementState.reflected);

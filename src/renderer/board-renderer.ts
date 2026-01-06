@@ -1,4 +1,4 @@
-import type { Patch, PlacementState, Player } from '../types';
+import type { Patch, PlacementState, Player, Shape } from '../types';
 import { COLORS, getPatchColor } from '../colors';
 import { getTransformedShape } from '../shape-utils';
 
@@ -78,7 +78,7 @@ export function renderBoard(
  */
 function drawButtonIndicators(
   ctx: CanvasRenderingContext2D,
-  shape: boolean[][],
+  shape: Shape,
   buttonIncome: number,
   startX: number,
   startY: number,
@@ -104,7 +104,7 @@ function drawButtonIndicators(
 /**
  * Get filled cell coordinates for a shape.
  */
-function getFilledCells(shape: boolean[][]): [number, number][] {
+function getFilledCells(shape: Shape): [number, number][] {
   const cells: [number, number][] = [];
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
