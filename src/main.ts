@@ -6,7 +6,6 @@ import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, i
 import { loadPlayerNames, savePlayerNames } from './storage';
 
 // TODO: bug with repeats when < 3 figures left
-// TODO: toggle map overlaps on narower screens with board
 // TODO: original game balance
 // TODO: indicate that you can preview board on game over screen
 // TODO: cancel only on placements outside of the board
