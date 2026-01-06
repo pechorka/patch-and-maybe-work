@@ -69,17 +69,17 @@ function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveR
   const oldPosition = player.position;
   const newPosition = Math.min(oldPosition + spaces, state.timeTrackLength);
 
-  // Check for income checkpoints crossed
+  // Check for income checkpoints crossed (markers are "between" cells, triggered when passing over)
   const checkpointsCrossed = state.incomePositions.filter(
-    pos => pos > oldPosition && pos <= newPosition
+    pos => oldPosition <= pos && newPosition > pos
   );
 
   // Collect income for each checkpoint
   player.buttons += checkpointsCrossed.length * player.income;
 
-  // Check for leather patches crossed (uncollected only)
+  // Check for leather patches crossed (uncollected only, markers are "between" cells)
   const crossedLeatherPositions = state.leatherPatches
-    .filter(lp => !lp.collected && lp.position > oldPosition && lp.position <= newPosition)
+    .filter(lp => !lp.collected && oldPosition <= lp.position && newPosition > lp.position)
     .map(lp => lp.position);
 
   // Update position

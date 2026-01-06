@@ -763,27 +763,11 @@ function renderCircularTimeTrack(
     const x = centerX + Math.cos(angle) * radius;
     const y = centerY + Math.sin(angle) * radius;
 
-    // Check if this position has an uncollected leather patch
-    const leatherPatch = game.leatherPatches.find(
-      lp => lp.position === pos && !lp.collected
-    );
-
-    if (leatherPatch) {
-      // Draw leather patch marker (small brown square)
-      ctx.fillStyle = COLORS.leatherPatch;
-      const patchSize = 14;
-      ctx.fillRect(x - patchSize / 2, y - patchSize / 2, patchSize, patchSize);
-    } else {
-      // Income checkpoint markers (larger, different color)
-      const isIncomePos = game.incomePositions.includes(pos);
-      const dotRadius = isIncomePos ? 8 : 3;
-      const color = isIncomePos ? COLORS.buttonIndicator : COLORS.text;
-
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // Draw regular position marker (small dot)
+    ctx.fillStyle = COLORS.text;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
 
     // Register clickable area for this position
     buttons.push({
@@ -796,6 +780,31 @@ function renderCircularTimeTrack(
       type: 'track-position',
       metadata: { trackPosition: pos },
     });
+  }
+
+  // Draw markers BETWEEN cells (at position + 0.5)
+  // Income checkpoints
+  for (const incomePos of game.incomePositions) {
+    const angle = ((incomePos + 0.5) / trackLength) * Math.PI * 2 - Math.PI / 2;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    ctx.fillStyle = COLORS.buttonIndicator;
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Leather patches (uncollected only)
+  for (const lp of game.leatherPatches) {
+    if (lp.collected) continue;
+    const angle = ((lp.position + 0.5) / trackLength) * Math.PI * 2 - Math.PI / 2;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    ctx.fillStyle = COLORS.leatherPatch;
+    const patchSize = 14;
+    ctx.fillRect(x - patchSize / 2, y - patchSize / 2, patchSize, patchSize);
   }
 
   // Draw player tokens
