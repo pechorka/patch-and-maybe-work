@@ -33,9 +33,9 @@ export interface BoardLayout {
 }
 
 export function getPlacementBoardLayout(gameState: GameState): BoardLayout {
-  const btnHeight = 50;
-  const boardTop = btnHeight + 20;
-  const boardPixelSize = Math.min(width - 40, height - btnHeight - 150);
+  const panelHeight = 80;
+  const boardTop = panelHeight + 20;
+  const boardPixelSize = Math.min(width - 40, height - panelHeight - 270);
   const boardLeft = (width - boardPixelSize) / 2;
   const cellSize = boardPixelSize / gameState.boardSize;
 
@@ -501,28 +501,28 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
   ctx.fillRect(0, 0, width, height);
 
-  // Top buttons
-  const btnHeight = 50;
-  const btnWidth = width / 2 - 10;
+  // Top buttons (same height as player panels to maintain board position)
+  const btnHeight = 80;
+  const btnWidth = width / 2;
 
   if (isLeatherPatch) {
     // Show "LEATHER PATCH" label instead of cancel button (can't cancel)
     ctx.fillStyle = COLORS.leatherPatch;
-    ctx.fillRect(5, 5, btnWidth, btnHeight);
+    ctx.fillRect(0, 0, btnWidth, btnHeight);
     ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('LEATHER PATCH', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
+    ctx.fillText('LEATHER PATCH', btnWidth / 2, btnHeight / 2 + 7);
     // No button registration - can't cancel leather patch placement
   } else {
     // Cancel button
     ctx.fillStyle = '#c0392b';
-    ctx.fillRect(5, 5, btnWidth, btnHeight);
+    ctx.fillRect(0, 0, btnWidth, btnHeight);
     ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('CANCEL', 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
-    buttons.push({ x: 5, y: 5, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
+    ctx.fillText('CANCEL', btnWidth / 2, btnHeight / 2 + 7);
+    buttons.push({ x: 0, y: 0, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
   }
 
   // Confirm button
@@ -530,16 +530,16 @@ function renderPlacementScreen(state: AppState): void {
   const canPlace = canPlacePatch(player.board, shape, placement.x, placement.y);
 
   ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
-  ctx.fillRect(width / 2 + 5, 5, btnWidth, btnHeight);
+  ctx.fillRect(width / 2, 0, btnWidth, btnHeight);
   ctx.fillStyle = COLORS.text;
-  ctx.fillText('CONFIRM', width / 2 + 5 + btnWidth / 2, 5 + btnHeight / 2 + 7);
+  ctx.fillText('CONFIRM', width / 2 + btnWidth / 2, btnHeight / 2 + 7);
   if (canPlace) {
-    buttons.push({ x: width / 2 + 5, y: 5, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
+    buttons.push({ x: width / 2, y: 0, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
   }
 
-  // Board with ghost
+  // Board with ghost (same size and position as game screen)
   const boardTop = btnHeight + 20;
-  const boardSize = Math.min(width - 40, height - btnHeight - 150);
+  const boardSize = Math.min(width - 40, height - btnHeight - 270);
   const boardLeft = (width - boardSize) / 2;
 
   renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);

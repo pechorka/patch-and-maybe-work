@@ -36,3 +36,7 @@ The app uses a simple state machine with four screens:
 ## Code Style
 
 - Always log errors with `console.error()` - never silently ignore them in catch blocks
+
+## UI/Layout Rules
+
+- **No layout shifts**: If the same element (e.g., board, panels) appears on different screens, it must maintain the same position and size. This prevents jarring visual jumps during screen transitions.
