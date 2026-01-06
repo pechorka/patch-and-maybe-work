@@ -2,7 +2,7 @@ import type { AppState, BoardSize, Button, GameState, Patch, PlacementState, Pla
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
   selectSize, editName, startGame,
-  selectPatch, skip, openMapView,
+  skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
@@ -436,7 +436,7 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
       buttons.push({
         x: patchX + 5, y, width: patchAreaWidth - 10, height: patchAreaHeight,
         label: `Patch ${i + 1}`,
-        action: () => selectPatch(i),
+        action: () => {}, // Handled by mousedown/touchstart in input.ts
       });
     }
   });

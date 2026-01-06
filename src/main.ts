@@ -1,5 +1,5 @@
 import type { AppState, BoardSize } from './types';
-import { buyPatch, createGameState, getAvailablePatches, isGameOver, skipAhead } from './game';
+import { buyPatch, canPlacePatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, skipAhead } from './game';
 import { initInput } from './input';
 import { reflectPatch, rotatePatch } from './patches';
 import { clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, setTappedTrackPosition } from './renderer';
@@ -39,16 +39,21 @@ export function startGame(): void {
 }
 
 // Game screen actions
-export function selectPatch(patchIndex: number): void {
+export function selectPatch(patchIndex: number, screenX: number, screenY: number): void {
   if (state.gameState) {
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[patchIndex];
     if (patch) {
-      // Center the patch on the board initially
       const shape = patch.shape;
-      const boardSize = state.gameState.boardSize;
-      const x = Math.floor((boardSize - shape[0].length) / 2);
-      const y = Math.floor((boardSize - shape.length) / 2);
+      const layout = getPlacementBoardLayout(state.gameState);
+
+      // Convert screen coords to cell coords, centering patch on touch
+      const touchCellX = (screenX - layout.boardLeft) / layout.cellSize;
+      const touchCellY = (screenY - layout.boardTop) / layout.cellSize;
+
+      // Center patch on touch point (no clamping - allow off-board)
+      const x = Math.round(touchCellX - shape[0].length / 2);
+      const y = Math.round(touchCellY - shape.length / 2);
 
       state.placementState = {
         patchIndex,
@@ -58,6 +63,14 @@ export function selectPatch(patchIndex: number): void {
         reflected: false,
       };
       state.screen = 'placement';
+
+      // Start drag immediately
+      state.dragState = {
+        startScreenX: screenX,
+        startScreenY: screenY,
+        startCellX: x,
+        startCellY: y,
+      };
     }
   }
   render(state);
@@ -209,6 +222,35 @@ export function startDrag(screenX: number, screenY: number): void {
   render(state);
 }
 
+export function spawnPatchAt(screenX: number, screenY: number): void {
+  if (!state.placementState || !state.gameState || state.screen !== 'placement') return;
+
+  const layout = getPlacementBoardLayout(state.gameState);
+  const patches = getAvailablePatches(state.gameState);
+  const patch = patches[state.placementState.patchIndex];
+  if (!patch) return;
+
+  // Get current transformed shape dimensions
+  let shape = rotatePatch(patch.shape, state.placementState.rotation);
+  if (state.placementState.reflected) {
+    shape = reflectPatch(shape);
+  }
+
+  // Convert screen coords to cell coords, centering patch on touch
+  const touchCellX = (screenX - layout.boardLeft) / layout.cellSize;
+  const touchCellY = (screenY - layout.boardTop) / layout.cellSize;
+
+  // Center the patch on the touch point (no clamping - allow off-board)
+  const cellX = Math.round(touchCellX - shape[0].length / 2);
+  const cellY = Math.round(touchCellY - shape.length / 2);
+
+  state.placementState.x = cellX;
+  state.placementState.y = cellY;
+
+  // Start drag immediately
+  startDrag(screenX, screenY);
+}
+
 export function updateDrag(screenX: number, screenY: number): void {
   if (!state.dragState || !state.placementState || !state.gameState) return;
 
@@ -222,24 +264,33 @@ export function updateDrag(screenX: number, screenY: number): void {
   const deltaCellsX = Math.round(deltaPixelsX / layout.cellSize);
   const deltaCellsY = Math.round(deltaPixelsY / layout.cellSize);
 
-  // Calculate new position
-  let newX = state.dragState.startCellX + deltaCellsX;
-  let newY = state.dragState.startCellY + deltaCellsY;
-
-  // Clamp to valid bounds (same logic as move functions)
-  const maxX = state.gameState.boardSize - 1;
-  const maxY = state.gameState.boardSize - 1;
-  newX = Math.max(-getMaxNegativeX(), Math.min(maxX, newX));
-  newY = Math.max(-getMaxNegativeY(), Math.min(maxY, newY));
-
-  // Update placement state
-  state.placementState.x = newX;
-  state.placementState.y = newY;
+  // No clamping - allow off-board positioning
+  state.placementState.x = state.dragState.startCellX + deltaCellsX;
+  state.placementState.y = state.dragState.startCellY + deltaCellsY;
 
   render(state);
 }
 
 export function endDrag(): void {
+  // Check if placement is valid
+  if (state.placementState && state.gameState) {
+    const patches = getAvailablePatches(state.gameState);
+    const patch = patches[state.placementState.patchIndex];
+    if (patch) {
+      let shape = rotatePatch(patch.shape, state.placementState.rotation);
+      if (state.placementState.reflected) {
+        shape = reflectPatch(shape);
+      }
+      const playerIdx = getCurrentPlayerIndex(state.gameState);
+      const player = state.gameState.players[playerIdx];
+      const valid = canPlacePatch(player.board, shape, state.placementState.x, state.placementState.y);
+
+      if (!valid) {
+        cancelPlacement();  // Auto-cancel on invalid release
+        return;
+      }
+    }
+  }
   state.dragState = null;
   render(state);
 }

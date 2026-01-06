@@ -1,8 +1,6 @@
 import type { Button } from './types';
-import { buttons, getPlacementBoardLayout } from './renderer';
-import { endDrag, getAppState, isDragging, startDrag, trackPositionRelease, updateDrag } from './main';
-import { getAvailablePatches } from './game';
-import { reflectPatch, rotatePatch } from './patches';
+import { buttons } from './renderer';
+import { endDrag, getAppState, isDragging, selectPatch, spawnPatchAt, trackPositionRelease, updateDrag } from './main';
 
 export function initInput(canvas: HTMLCanvasElement): void {
   canvas.addEventListener('click', handleClick);
@@ -32,22 +30,42 @@ function handleTouch(e: TouchEvent): void {
 }
 
 function handleMouseDown(e: MouseEvent): void {
-  // Check if on ghost patch for drag start
-  if (isOnGhostPatch(e.clientX, e.clientY)) {
-    startDrag(e.clientX, e.clientY);
+  const state = getAppState();
+
+  // On game screen, check for patch button press
+  if (state.screen === 'game') {
+    if (checkPatchButtonHit(e.clientX, e.clientY)) {
+      return;
+    }
+  }
+
+  // On placement screen, reposition patch at touch location and start drag
+  if (state.screen === 'placement') {
+    spawnPatchAt(e.clientX, e.clientY);
     return;
   }
+
   checkTrackPositionHit(e.clientX, e.clientY);
 }
 
 function handleTouchStart(e: TouchEvent): void {
   if (e.touches.length > 0) {
     const touch = e.touches[0];
-    // Check if on ghost patch for drag start
-    if (isOnGhostPatch(touch.clientX, touch.clientY)) {
-      startDrag(touch.clientX, touch.clientY);
+    const state = getAppState();
+
+    // On game screen, check for patch button press
+    if (state.screen === 'game') {
+      if (checkPatchButtonHit(touch.clientX, touch.clientY)) {
+        return;
+      }
+    }
+
+    // On placement screen, reposition patch at touch location and start drag
+    if (state.screen === 'placement') {
+      spawnPatchAt(touch.clientX, touch.clientY);
       return;
     }
+
     checkTrackPositionHit(touch.clientX, touch.clientY);
   }
 }
@@ -64,10 +82,26 @@ function isTrackPositionButton(button: Button): boolean {
   return button.label.startsWith('Position ');
 }
 
+function isPatchButton(button: Button): boolean {
+  return button.label.startsWith('Patch ');
+}
+
+function checkPatchButtonHit(x: number, y: number): boolean {
+  for (const button of buttons) {
+    if (isPatchButton(button) && isInside(x, y, button)) {
+      // Extract patch index from label "Patch 1" → 0
+      const patchIndex = parseInt(button.label.split(' ')[1]) - 1;
+      selectPatch(patchIndex, x, y);
+      return true;
+    }
+  }
+  return false;
+}
+
 function checkHit(x: number, y: number): void {
   for (const button of buttons) {
-    // Skip track position buttons - they're handled by press/release
-    if (isTrackPositionButton(button)) {
+    // Skip track position buttons and patch buttons - they're handled by press/release
+    if (isTrackPositionButton(button) || isPatchButton(button)) {
       continue;
     }
     if (isInside(x, y, button)) {
@@ -109,37 +143,4 @@ function handleTouchMove(e: TouchEvent): void {
   }
 }
 
-function isOnGhostPatch(screenX: number, screenY: number): boolean {
-  const state = getAppState();
-  if (state.screen !== 'placement' || !state.gameState || !state.placementState) {
-    return false;
-  }
 
-  const layout = getPlacementBoardLayout(state.gameState);
-  const placement = state.placementState;
-  const patches = getAvailablePatches(state.gameState);
-  const patch = patches[placement.patchIndex];
-  if (!patch) return false;
-
-  // Get transformed shape
-  let shape = rotatePatch(patch.shape, placement.rotation);
-  if (placement.reflected) {
-    shape = reflectPatch(shape);
-  }
-
-  // Calculate bounding box of ghost patch in screen coordinates
-  const patchLeft = layout.boardLeft + placement.x * layout.cellSize;
-  const patchTop = layout.boardTop + placement.y * layout.cellSize;
-  const patchWidth = shape[0].length * layout.cellSize;
-  const patchHeight = shape.length * layout.cellSize;
-
-  // Add padding for easier touch targeting (half a cell)
-  const padding = layout.cellSize * 0.5;
-
-  return (
-    screenX >= patchLeft - padding &&
-    screenX <= patchLeft + patchWidth + padding &&
-    screenY >= patchTop - padding &&
-    screenY <= patchTop + patchHeight + padding
-  );
-}
