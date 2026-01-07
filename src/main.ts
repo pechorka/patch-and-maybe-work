@@ -8,7 +8,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
 // TODO: original game balance (placement of letter and income checkboxes)
-// TODO: more obvious indication that you can't buy thing
 // TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)

@@ -517,7 +517,8 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
     const shapeX = patchX + (patchAreaWidth - shapeWidth) / 2;
     const shapeY = y + 10;
 
-    ctx.fillStyle = getPatchColor(patch.id);
+    const patchColor = getPatchColor(patch.id);
+    ctx.fillStyle = canBuy ? patchColor : adjustColorOpacity(patchColor, 0.4);
     for (let row = 0; row < shape.length; row++) {
       for (let col = 0; col < shape[row].length; col++) {
         if (shape[row][col]) {
