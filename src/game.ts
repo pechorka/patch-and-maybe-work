@@ -449,3 +449,27 @@ export function createTestGameNearLastIncome(playerNames: [string, string], firs
 
   return state;
 }
+
+export function createTestGameOver(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const player1 = state.players[0];
+  const player2 = state.players[1];
+
+  // Both players at end of track
+  player1.position = state.timeTrackLength;
+  player2.position = state.timeTrackLength;
+
+  // Give different scores for testing
+  player1.buttons = 15;
+  player2.buttons = 12;
+
+  // Fill some board cells to create different penalties
+  player1.board[0][0] = 0;
+  player1.board[0][1] = 0;
+  player1.board[1][0] = 0;
+
+  player2.board[0][0] = 1;
+  player2.board[0][1] = 1;
+
+  return state;
+}

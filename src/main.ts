@@ -1,5 +1,5 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome } from './game';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
@@ -8,7 +8,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
 // TODO: original game balance (placement of letter and income checkboxes)
-// TODO: indicate that you can preview board on game over screen
 // TODO: more obvious indication that you can't buy thing
 // TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
@@ -118,6 +117,11 @@ export function loadTestGameNearLeatherPatch(): void {
 export function loadTestGameNearLastIncome(): void {
   state.gameState = createTestGameNearLastIncome(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
+}
+
+export function loadTestGameOver(): void {
+  state.gameState = createTestGameOver(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'gameEnd';
 }
 
 // Game screen actions

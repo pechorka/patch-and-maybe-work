@@ -9,7 +9,7 @@ import {
   getIsAdminMode, openAdminTestScreen, backToSetup,
   loadTestGame1Patch, loadTestGame2Patches,
   loadTestGameNearIncome, loadTestGameInfiniteMoney, loadTestGameNearLeatherPatch,
-  loadTestGameNearLastIncome,
+  loadTestGameNearLastIncome, loadTestGameOver,
 } from './main';
 import { getTransformedShape } from './shape-utils';
 import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor } from './colors';
@@ -268,6 +268,7 @@ function renderAdminTestScreen(_state: AppState): void {
     { label: 'Near Last Income (53)', action: loadTestGameNearLastIncome },
     { label: 'Infinite Money', action: loadTestGameInfiniteMoney },
     { label: 'Near Leather Patch', action: loadTestGameNearLeatherPatch },
+    { label: 'Game Over Screen', action: loadTestGameOver },
   ];
 
   testScenarios.forEach((scenario, i) => {
@@ -686,11 +687,11 @@ function renderGameEndScreen(state: AppState): void {
     const score = calculateScore(player);
     const isWinner = winner === i;
 
-    const yPos = height * 0.35 + i * 100;
+    const yPos = height * 0.35 + i * 110;
     const panelX = centerX - 150;
     const panelY = yPos - 30;
     const panelWidth = 300;
-    const panelHeight = 80;
+    const panelHeight = 100;
 
     ctx.fillStyle = isWinner ? COLORS.panelActive : COLORS.panel;
     ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
@@ -704,6 +705,10 @@ function renderGameEndScreen(state: AppState): void {
 
     const emptySpaces = countEmptySpaces(player.board);
     ctx.fillText(`(${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, yPos + 30);
+
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText('Tap to preview board', centerX, yPos + 55);
 
     // Make panel clickable to preview board
     const playerIdx = i;
