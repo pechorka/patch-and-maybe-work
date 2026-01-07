@@ -775,6 +775,22 @@ function renderPlacementScreen(state: AppState): void {
   // Cancel/Confirm buttons at bottom
   const bottomRowY = height - btnHeight - 20;
 
+  // Toggle map button (above cancel/confirm)
+  const mapBtnHeight = 40;
+  const mapBtnY = bottomRowY - mapBtnHeight - btnGap;
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(boardLeft, mapBtnY, boardSize, mapBtnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('TOGGLE MAP', boardLeft + boardSize / 2, mapBtnY + mapBtnHeight / 2 + 5);
+  buttons.push({
+    x: boardLeft, y: mapBtnY, width: boardSize, height: mapBtnHeight,
+    label: 'Toggle Map',
+    action: openMapView,
+    type: 'standard',
+  });
+
   // Cancel button (left) - only for non-leather patches
   if (!isLeatherPatch) {
     ctx.fillStyle = '#c0392b';

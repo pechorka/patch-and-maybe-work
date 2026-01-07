@@ -13,7 +13,6 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 // TODO: label to player order selection
-// TODO: show map button on placement screen
 // TODO: add animation for leather patch arrival
 // TODO: better leather patch visibility
 // TODO: congratulate player on 7x7 dorogo bogato
