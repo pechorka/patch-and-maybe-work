@@ -27,17 +27,18 @@ export function savePlayerNames(names: [string, string]): void {
   }
 }
 
-export function loadFirstPlayerPref(): 0 | 1 {
+export function loadFirstPlayerPref(): 0 | 1 | 'random' {
   try {
     const stored = localStorage.getItem(FIRST_PLAYER_KEY);
     if (stored === '1') return 1;
+    if (stored === 'random') return 'random';
   } catch (e) {
     console.error('Failed to load first player preference from localStorage:', e);
   }
   return 0;
 }
 
-export function saveFirstPlayerPref(playerIdx: 0 | 1): void {
+export function saveFirstPlayerPref(playerIdx: 0 | 1 | 'random'): void {
   try {
     localStorage.setItem(FIRST_PLAYER_KEY, String(playerIdx));
   } catch (e) {

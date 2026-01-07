@@ -92,7 +92,7 @@ export interface AppState {
   dragState: DragState | null;
   selectedBoardSize: BoardSize;
   playerNames: [string, string];
-  firstPlayerIndex: 0 | 1;  // Which player goes first
+  firstPlayerIndex: 0 | 1 | 'random';  // Which player goes first (or 'random' to pick randomly each game)
   previewPlayerIdx: number | null;
   pendingLeatherPatches: number[];   // Queue of leather patch positions to collect
   placingLeatherPatch: Patch | null; // Current leather patch being placed

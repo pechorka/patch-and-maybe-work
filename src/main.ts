@@ -116,7 +116,7 @@ export function editName(playerIdx: 0 | 1): void {
   }
 }
 
-export function selectFirstPlayer(playerIdx: 0 | 1): void {
+export function selectFirstPlayer(playerIdx: 0 | 1 | 'random'): void {
   state.firstPlayerIndex = playerIdx;
   saveFirstPlayerPref(playerIdx);
 }
@@ -137,12 +137,13 @@ export function togglePlacementAnimations(): void {
 }
 
 export function startGame(): void {
-  const { state: gameState, seed } = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
+  const actualFirstPlayer = resolveFirstPlayer();
+  const { state: gameState, seed } = createGameState(state.selectedBoardSize, state.playerNames, actualFirstPlayer);
   state.gameState = gameState;
   state.historyManager = createHistoryManager(
     seed,
     state.playerNames,
-    state.firstPlayerIndex,
+    actualFirstPlayer,
     state.selectedBoardSize
   );
   state.screen = 'game';
@@ -162,38 +163,44 @@ export function backToSetup(): void {
   state.screen = 'setup';
 }
 
+function resolveFirstPlayer(): 0 | 1 {
+  return state.firstPlayerIndex === 'random'
+    ? (Math.random() < 0.5 ? 0 : 1)
+    : state.firstPlayerIndex;
+}
+
 export function loadTestGame1Patch(): void {
-  state.gameState = createTestGameWith1Patch(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameWith1Patch(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGame2Patches(): void {
-  state.gameState = createTestGameWith2Patches(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameWith2Patches(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGameNearIncome(): void {
-  state.gameState = createTestGameNearIncome(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameNearIncome(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGameInfiniteMoney(): void {
-  state.gameState = createTestGameInfiniteMoney(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameInfiniteMoney(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGameNearLeatherPatch(): void {
-  state.gameState = createTestGameNearLeatherPatch(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameNearLeatherPatch(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGameNearLastIncome(): void {
-  state.gameState = createTestGameNearLastIncome(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameNearLastIncome(state.playerNames, resolveFirstPlayer());
   state.screen = 'game';
 }
 
 export function loadTestGameOver(): void {
-  state.gameState = createTestGameOver(state.playerNames, state.firstPlayerIndex);
+  state.gameState = createTestGameOver(state.playerNames, resolveFirstPlayer());
   state.screen = 'gameEnd';
 }
 

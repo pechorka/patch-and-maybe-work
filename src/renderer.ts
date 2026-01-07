@@ -206,7 +206,7 @@ function renderSetupScreen(rctx: RenderContext, buttons: Button[], state: AppSta
   for (let i = 0; i < 2; i++) {
     const x = nameStartX + i * (nameButtonWidth + nameGap);
 
-    ctx.fillStyle = COLORS.panel;
+    ctx.fillStyle = getPlayerColor(i as 0 | 1, true);
     ctx.fillRect(x, nameY, nameButtonWidth, nameButtonHeight);
 
     ctx.fillStyle = COLORS.text;
@@ -225,28 +225,59 @@ function renderSetupScreen(rctx: RenderContext, buttons: Button[], state: AppSta
     });
   }
 
-  // First player checkboxes
-  const checkboxWidth = scale(minDim, LAYOUT.checkbox.firstPlayer.width);
-  const checkboxHeight = scale(minDim, LAYOUT.checkbox.firstPlayer.height);
-  const checkboxY = height * 0.42;
+  // "Who goes first:" label
+  ctx.fillStyle = COLORS.text;
+  ctx.font = font(minDim, 'small');
+  ctx.textAlign = 'center';
+  ctx.fillText('Who goes first:', centerX, height * 0.415);
 
-  for (let i = 0; i < 2; i++) {
-    const x = nameStartX + i * (nameButtonWidth + nameGap) + (nameButtonWidth - checkboxWidth) / 2;
-    const isSelected = state.firstPlayerIndex === i;
+  // First player checkboxes (3 options: player 0, player 1, random)
+  const fpCheckboxWidth = scale(minDim, 0.08);  // Slightly smaller to fit 3
+  const fpCheckboxHeight = scale(minDim, LAYOUT.checkbox.firstPlayer.height);
+  const fpCheckboxGap = scale(minDim, 0.02);
+  const totalFpWidth = 3 * fpCheckboxWidth + 2 * fpCheckboxGap;
+  const fpStartX = centerX - totalFpWidth / 2;
+  const fpCheckboxY = height * 0.44;
+
+  const firstPlayerOptions: Array<{ value: 0 | 1 | 'random'; label: string }> = [
+    { value: 0, label: 'First Player 1' },
+    { value: 1, label: 'First Player 2' },
+    { value: 'random', label: 'Random First Player' },
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    const x = fpStartX + i * (fpCheckboxWidth + fpCheckboxGap);
+    const option = firstPlayerOptions[i];
+    const isSelected = state.firstPlayerIndex === option.value;
 
     if (isSelected) {
-      ctx.fillStyle = COLORS.panelActive;
-      ctx.fillRect(x, checkboxY, checkboxWidth, checkboxHeight);
+      if (i === 2) {
+        // Random option: use gradient when selected
+        drawPlayerGradient(ctx, x, fpCheckboxY, fpCheckboxWidth, fpCheckboxHeight, false);
+      } else {
+        // Player options: use player color when selected
+        ctx.fillStyle = getPlayerColor(i as 0 | 1, true);
+        ctx.fillRect(x, fpCheckboxY, fpCheckboxWidth, fpCheckboxHeight);
+      }
     } else {
-      ctx.strokeStyle = COLORS.panel;
+      // Use player color for stroke (dim version for player options, panel for random)
+      ctx.strokeStyle = i === 2 ? COLORS.panel : getPlayerColor(i as 0 | 1, false);
       ctx.lineWidth = 2;
-      ctx.strokeRect(x, checkboxY, checkboxWidth, checkboxHeight);
+      ctx.strokeRect(x, fpCheckboxY, fpCheckboxWidth, fpCheckboxHeight);
+    }
+
+    // Draw dice emoji for random option
+    if (i === 2) {
+      ctx.fillStyle = isSelected ? COLORS.text : COLORS.panel;
+      ctx.font = font(minDim, 'normal');
+      ctx.textAlign = 'center';
+      ctx.fillText('🎲', x + fpCheckboxWidth / 2, fpCheckboxY + fpCheckboxHeight / 2 + scale(minDim, 0.0075));
     }
 
     buttons.push({
-      x, y: checkboxY, width: checkboxWidth, height: checkboxHeight,
-      label: `First Player ${i + 1}`,
-      action: () => selectFirstPlayer(i as 0 | 1),
+      x, y: fpCheckboxY, width: fpCheckboxWidth, height: fpCheckboxHeight,
+      label: option.label,
+      action: () => selectFirstPlayer(option.value),
       type: 'standard',
     });
   }
