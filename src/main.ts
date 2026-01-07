@@ -81,6 +81,9 @@ function deepCloneGameState(gameState: GameState): GameState {
 function saveUndoSnapshot(): void {
   if (!state.gameState || !state.historyManager) return;
 
+  // Clear any existing snapshot (opponent made a move)
+  state.undoSnapshot = null;
+
   const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
   state.undoSnapshot = {
     gameState: deepCloneGameState(state.gameState),
@@ -89,11 +92,9 @@ function saveUndoSnapshot(): void {
   };
 }
 
-// Check if undo is available (snapshot exists and it's the same player's turn)
+// Check if undo is available (snapshot exists)
 export function canUndo(): boolean {
-  if (!state.undoSnapshot || !state.gameState) return false;
-  const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
-  return currentPlayerIndex === state.undoSnapshot.playerIndex;
+  return state.undoSnapshot !== null && state.gameState !== null;
 }
 
 // Check for admin mode via query parameter
@@ -543,6 +544,7 @@ export function playAgain(): void {
   state.placingLeatherPatch = null;
   state.historyManager = null;
   state.gameEndTab = 'summary';
+  state.undoSnapshot = null;
   state.screen = 'setup';
 }
 
@@ -772,14 +774,6 @@ function processNextLeatherPatch(): void {
 function checkGameEnd(): void {
   if (!state.gameState) return;
 
-  // Clear undo snapshot if turn changed to different player
-  if (state.undoSnapshot) {
-    const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
-    if (currentPlayerIndex !== state.undoSnapshot.playerIndex) {
-      state.undoSnapshot = null;
-    }
-  }
-
   if (isGameOver(state.gameState)) {
     // Finalize history with final scores
     if (state.historyManager) {
@@ -789,6 +783,8 @@ function checkGameEnd(): void {
       ];
       finalizeHistory(state.historyManager, scores);
     }
+    // Clear undo snapshot when game ends
+    state.undoSnapshot = null;
     state.screen = 'gameEnd';
     return;
   }
@@ -835,6 +831,8 @@ function checkGameEnd(): void {
       ];
       finalizeHistory(state.historyManager, scores);
     }
+    // Clear undo snapshot when game ends
+    state.undoSnapshot = null;
     state.screen = 'gameEnd';
     return;
   }
