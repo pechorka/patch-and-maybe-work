@@ -553,33 +553,33 @@ function checkGameEnd(): void {
   }
 
   // Auto-skip if enabled and current player can't afford any patches
-  let autoSkipCount = 0;
   while (state.autoSkipEnabled &&
          state.gameState &&
          !isGameOver(state.gameState) &&
          !canAffordAnyPatch(state.gameState)) {
+    // Show toast for who is being skipped
+    const skippedPlayer = state.gameState.players[getCurrentPlayerIndex(state.gameState)];
+    showToast(`Auto-skipped ${skippedPlayer.name}`);
+
     const result = skipAhead(state.gameState);
-    autoSkipCount++;
 
     if (result.crossedLeatherPositions.length > 0) {
-      // Show toast for skips so far, then handle leather patches
-      if (autoSkipCount > 0) {
-        showToast(`Auto-skipped ${autoSkipCount} turn${autoSkipCount > 1 ? 's' : ''}`);
-      }
       state.pendingLeatherPatches = result.crossedLeatherPositions;
       processNextLeatherPatch();
       return;  // Will continue auto-skipping after leather patch placement via checkGameEnd()
     }
   }
 
-  // Show toast if we auto-skipped any turns
-  if (autoSkipCount > 0) {
-    showToast(`Auto-skipped ${autoSkipCount} turn${autoSkipCount > 1 ? 's' : ''}`);
-  }
-
   // Check for game end after auto-skips
   if (state.gameState && isGameOver(state.gameState)) {
     state.screen = 'gameEnd';
+    return;
+  }
+
+  // Show whose turn it is now
+  if (state.gameState) {
+    const currentPlayer = state.gameState.players[getCurrentPlayerIndex(state.gameState)];
+    showToast(`${currentPlayer.name}'s turn`);
   }
 }
 
