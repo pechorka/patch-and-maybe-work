@@ -703,77 +703,39 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
   ctx.fillRect(0, 0, width, height);
 
-  // Top buttons (same height as player panels to maintain board position)
-  const btnHeight = 80;
-  const btnWidth = width / 2;
+  // Top panel (same height as player panels to maintain board position)
+  const panelHeight = 80;
 
   if (isLeatherPatch) {
-    // Show "LEATHER PATCH" label instead of cancel button (can't cancel)
+    // Show "LEATHER PATCH" label at top
     ctx.fillStyle = COLORS.leatherPatch;
-    ctx.fillRect(0, 0, btnWidth, btnHeight);
+    ctx.fillRect(0, 0, width, panelHeight);
     ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('LEATHER PATCH', btnWidth / 2, btnHeight / 2 + 7);
-    // No button registration - can't cancel leather patch placement
+    ctx.fillText('LEATHER PATCH', width / 2, panelHeight / 2 + 7);
   } else {
-    // Cancel button
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(0, 0, btnWidth, btnHeight);
+    // Show player name at top (matching game screen panel style)
+    ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, true);
+    ctx.fillRect(0, 0, width, panelHeight);
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('CANCEL', btnWidth / 2, btnHeight / 2 + 7);
-    buttons.push({ x: 0, y: 0, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
+    ctx.fillText(`${player.name} - Place Patch`, width / 2, panelHeight / 2 + 7);
   }
 
-  // Confirm button
   const shape = getTransformedShape(patch.shape, placement.rotation, placement.reflected);
   const canPlace = canPlacePatch(player.board, shape, placement.x, placement.y);
 
-  ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
-  ctx.fillRect(width / 2, 0, btnWidth, btnHeight);
-  ctx.fillStyle = COLORS.text;
-  ctx.fillText('CONFIRM', width / 2 + btnWidth / 2, btnHeight / 2 + 7);
-  if (canPlace) {
-    buttons.push({ x: width / 2, y: 0, width: btnWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
-  }
-
   // Board with ghost (same size and position as game screen)
-  const boardTop = btnHeight + 20;
-  const boardSize = Math.min(width - 40, height - btnHeight - 270);
+  const boardTop = panelHeight + 20;
+  const boardSize = Math.min(width - 40, height - panelHeight - 270);
   const boardLeft = (width - boardSize) / 2;
 
   renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
-  // Control buttons at bottom (rotate and reflect only)
-  const controlY = boardTop + boardSize + 20;
-  const controlBtnHeight = 50;
-  const controlBtnWidth = 100;
-  const controlGap = 20;
-  const controlsWidth = controlBtnWidth * 2 + controlGap;
-  const controlsStartX = (width - controlsWidth) / 2;
-
-  // Rotate button
-  const rotateBtnX = controlsStartX;
-  ctx.fillStyle = COLORS.panel;
-  ctx.fillRect(rotateBtnX, controlY, controlBtnWidth, controlBtnHeight);
-  ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 18px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Rotate', rotateBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
-  buttons.push({ x: rotateBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Rotate', action: rotate, type: 'standard' });
-
-  // Reflect button
-  const reflectBtnX = controlsStartX + controlBtnWidth + controlGap;
-  ctx.fillStyle = COLORS.panel;
-  ctx.fillRect(reflectBtnX, controlY, controlBtnWidth, controlBtnHeight);
-  ctx.fillStyle = COLORS.text;
-  ctx.fillText('Reflect', reflectBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
-  buttons.push({ x: reflectBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Reflect', action: reflect, type: 'standard' });
-
-  // Patch info panel
-  const infoY = controlY + controlBtnHeight + 25;
+  // Patch info panel (below board)
+  const infoY = boardTop + boardSize + 25;
   const filledCells = shape.flat().filter(cell => cell === 1).length;
   const scoreDelta = (filledCells * 2) - patch.buttonCost;
   const infoText = isLeatherPatch
@@ -784,6 +746,58 @@ function renderPlacementScreen(state: AppState): void {
   ctx.font = '16px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(infoText, width / 2, infoY);
+
+  // Button dimensions
+  const btnHeight = 50;
+  const btnGap = 10;
+  const btnWidth = (boardSize - btnGap) / 2;
+
+  // Rotate/Reflect buttons right under patch info
+  const rotateRowY = infoY + 20;
+
+  // Rotate button (left)
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(boardLeft, rotateRowY, btnWidth, btnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ROTATE', boardLeft + btnWidth / 2, rotateRowY + btnHeight / 2 + 6);
+  buttons.push({ x: boardLeft, y: rotateRowY, width: btnWidth, height: btnHeight, label: 'Rotate', action: rotate, type: 'standard' });
+
+  // Reflect button (right)
+  const reflectX = boardLeft + btnWidth + btnGap;
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(reflectX, rotateRowY, btnWidth, btnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText('REFLECT', reflectX + btnWidth / 2, rotateRowY + btnHeight / 2 + 6);
+  buttons.push({ x: reflectX, y: rotateRowY, width: btnWidth, height: btnHeight, label: 'Reflect', action: reflect, type: 'standard' });
+
+  // Cancel/Confirm buttons at bottom
+  const bottomRowY = height - btnHeight - 20;
+
+  // Cancel button (left) - only for non-leather patches
+  if (!isLeatherPatch) {
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(boardLeft, bottomRowY, btnWidth, btnHeight);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CANCEL', boardLeft + btnWidth / 2, bottomRowY + btnHeight / 2 + 6);
+    buttons.push({ x: boardLeft, y: bottomRowY, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
+  }
+
+  // Confirm button (right, or full width for leather patch)
+  const confirmX = isLeatherPatch ? boardLeft : boardLeft + btnWidth + btnGap;
+  const confirmWidth = isLeatherPatch ? boardSize : btnWidth;
+  ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
+  ctx.fillRect(confirmX, bottomRowY, confirmWidth, btnHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('CONFIRM', confirmX + confirmWidth / 2, bottomRowY + btnHeight / 2 + 6);
+  if (canPlace) {
+    buttons.push({ x: confirmX, y: bottomRowY, width: confirmWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
+  }
 }
 
 function renderBoardWithGhost(
