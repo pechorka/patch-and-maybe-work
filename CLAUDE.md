@@ -40,3 +40,4 @@ The app uses a simple state machine with four screens:
 ## UI/Layout Rules
 
 - **No layout shifts**: If the same element (e.g., board, panels) appears on different screens, it must maintain the same position and size. This prevents jarring visual jumps during screen transitions.
+- **Percentage-based sizing**: All layout dimensions (element sizes, gaps, margins, font sizes) must be expressed as percentages of `minDim = Math.min(screenWidth, screenHeight)`. Never use hardcoded pixel values. Use constants from `src/layout.ts`.

@@ -23,6 +23,9 @@ export function renderBoard(
   const boardSize = player.board.length;
   const cellSize = size / boardSize;
 
+  // Cell padding as percentage of cell size (2%)
+  const cellPadding = Math.max(1, cellSize * 0.02);
+
   // Background
   ctx.fillStyle = COLORS.boardBg;
   ctx.fillRect(x, y, size, size);
@@ -46,7 +49,7 @@ export function renderBoard(
         if (shape[row][col]) {
           const cellX = x + (placed.x + col) * cellSize;
           const cellY = y + (placed.y + row) * cellSize;
-          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
+          ctx.fillRect(cellX + cellPadding, cellY + cellPadding, cellSize - cellPadding * 2, cellSize - cellPadding * 2);
         }
       }
     }
@@ -61,7 +64,8 @@ export function renderBoard(
     const bonusSize = 7 * cellSize;
 
     ctx.strokeStyle = COLORS.bonus7x7;
-    ctx.lineWidth = 3;
+    // Stroke width as percentage of cell size (5%)
+    ctx.lineWidth = Math.max(2, cellSize * 0.05);
     ctx.strokeRect(bonusX, bonusY, bonusSize, bonusSize);
     ctx.lineWidth = 1;
   }
@@ -76,7 +80,7 @@ export function renderBoard(
         if (ghostShape[row][col]) {
           const cellX = x + (ghost.placement.x + col) * cellSize;
           const cellY = y + (ghost.placement.y + row) * cellSize;
-          ctx.fillRect(cellX + 1, cellY + 1, cellSize - 2, cellSize - 2);
+          ctx.fillRect(cellX + cellPadding, cellY + cellPadding, cellSize - cellPadding * 2, cellSize - cellPadding * 2);
         }
       }
     }

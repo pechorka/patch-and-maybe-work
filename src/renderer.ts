@@ -17,11 +17,13 @@ import { getOpponentIndex } from './player-utils';
 import { renderBoard as renderBoardNew } from './renderer/board-renderer';
 import { calculateStats, calculateChartData } from './stats';
 import { renderCharts } from './renderer/chart-renderer';
+import { getMinDim, LAYOUT, scale, font, getBoardLayout } from './layout';
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
 let width: number;
 let height: number;
+let minDim: number;
 
 // Track tapped position on time track (for distance display)
 let lastTappedTrackPos: number | null = null;
@@ -39,18 +41,13 @@ export interface BoardLayout {
 }
 
 export function getPlacementBoardLayout(gameState: GameState): BoardLayout {
-  const panelHeight = 80;
-  const boardTop = panelHeight + 20;
-  const boardPixelSize = Math.min(width - 40, height - panelHeight - 270);
-  const boardLeft = (width - boardPixelSize) / 2;
-  const cellSize = boardPixelSize / gameState.boardSize;
-
+  const layout = getBoardLayout(width, height, gameState.boardSize);
   return {
-    boardLeft,
-    boardTop,
-    boardSize: boardPixelSize,
-    cellSize,
-    boardCells: gameState.boardSize,
+    boardLeft: layout.boardLeft,
+    boardTop: layout.boardTop,
+    boardSize: layout.boardSize,
+    cellSize: layout.cellSize,
+    boardCells: layout.boardCells,
   };
 }
 
@@ -96,6 +93,7 @@ function resize(): void {
   const dpr = window.devicePixelRatio || 1;
   width = window.innerWidth;
   height = window.innerHeight;
+  minDim = getMinDim(width, height);
 
   canvas.width = width * dpr;
   canvas.height = height * dpr;
@@ -193,18 +191,18 @@ function renderSetupScreen(state: AppState): void {
 
   // Title
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 48px sans-serif';
+  ctx.font = font(minDim, 'title', 'bold');
   ctx.textAlign = 'center';
   ctx.fillText('PATCHWORK', centerX, height * 0.18);
 
   // Players label
-  ctx.font = '24px sans-serif';
+  ctx.font = font(minDim, 'large');
   ctx.fillText('Players:', centerX, height * 0.30);
 
   // Player name buttons
-  const nameButtonWidth = 160;
-  const nameButtonHeight = 40;
-  const nameGap = 20;
+  const nameButtonWidth = scale(minDim, LAYOUT.nameButton.width);
+  const nameButtonHeight = scale(minDim, LAYOUT.nameButton.height);
+  const nameGap = scale(minDim, LAYOUT.nameButton.gap);
   const totalNameWidth = 2 * nameButtonWidth + nameGap;
   const nameStartX = centerX - totalNameWidth / 2;
   const nameY = height * 0.34;
@@ -216,12 +214,12 @@ function renderSetupScreen(state: AppState): void {
     ctx.fillRect(x, nameY, nameButtonWidth, nameButtonHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = '18px sans-serif';
+    ctx.font = font(minDim, 'normal');
     ctx.textAlign = 'center';
     const displayName = state.playerNames[i].length > 12
       ? state.playerNames[i].slice(0, 12) + '...'
       : state.playerNames[i];
-    ctx.fillText(displayName, x + nameButtonWidth / 2, nameY + nameButtonHeight / 2 + 6);
+    ctx.fillText(displayName, x + nameButtonWidth / 2, nameY + nameButtonHeight / 2 + scale(minDim, 0.0075));
 
     buttons.push({
       x, y: nameY, width: nameButtonWidth, height: nameButtonHeight,
@@ -232,8 +230,8 @@ function renderSetupScreen(state: AppState): void {
   }
 
   // First player checkboxes
-  const checkboxWidth = 80;
-  const checkboxHeight = 40;
+  const checkboxWidth = scale(minDim, LAYOUT.checkbox.firstPlayer.width);
+  const checkboxHeight = scale(minDim, LAYOUT.checkbox.firstPlayer.height);
   const checkboxY = height * 0.42;
 
   for (let i = 0; i < 2; i++) {
@@ -259,21 +257,21 @@ function renderSetupScreen(state: AppState): void {
 
   // Auto-skip toggle
   const autoSkipY = height * 0.50;
-  const checkboxSize = 30;
-  const checkboxX = centerX - 150;
-  const labelX = checkboxX + checkboxSize + 10;
+  const checkboxSize = scale(minDim, LAYOUT.checkbox.size);
+  const checkboxX = centerX - scale(minDim, 0.1875);
+  const labelX = checkboxX + checkboxSize + scale(minDim, LAYOUT.gap.medium);
 
   // Checkbox
   if (state.autoSkipEnabled) {
     ctx.fillStyle = COLORS.panelActive;
     ctx.fillRect(checkboxX, autoSkipY, checkboxSize, checkboxSize);
-    // Checkmark
+    // Checkmark - positions relative to checkbox size
     ctx.strokeStyle = COLORS.text;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(checkboxX + 6, autoSkipY + 15);
-    ctx.lineTo(checkboxX + 12, autoSkipY + 22);
-    ctx.lineTo(checkboxX + 24, autoSkipY + 8);
+    ctx.moveTo(checkboxX + checkboxSize * 0.2, autoSkipY + checkboxSize * 0.5);
+    ctx.lineTo(checkboxX + checkboxSize * 0.4, autoSkipY + checkboxSize * 0.73);
+    ctx.lineTo(checkboxX + checkboxSize * 0.8, autoSkipY + checkboxSize * 0.27);
     ctx.stroke();
   } else {
     ctx.strokeStyle = COLORS.panel;
@@ -283,12 +281,13 @@ function renderSetupScreen(state: AppState): void {
 
   // Label
   ctx.fillStyle = COLORS.text;
-  ctx.font = '16px sans-serif';
+  ctx.font = font(minDim, 'small');
   ctx.textAlign = 'left';
-  ctx.fillText("Auto-skip when can't buy", labelX, autoSkipY + checkboxSize / 2 + 5);
+  ctx.fillText("Auto-skip when can't buy", labelX, autoSkipY + checkboxSize / 2 + scale(minDim, 0.00625));
 
+  const checkboxHitWidth = scale(minDim, 0.375);
   buttons.push({
-    x: checkboxX, y: autoSkipY, width: 300, height: checkboxSize,
+    x: checkboxX, y: autoSkipY, width: checkboxHitWidth, height: checkboxSize,
     label: 'Toggle Auto-skip',
     action: toggleAutoSkip,
     type: 'standard',
@@ -301,13 +300,13 @@ function renderSetupScreen(state: AppState): void {
   if (state.faceToFaceMode) {
     ctx.fillStyle = COLORS.panelActive;
     ctx.fillRect(checkboxX, faceToFaceY, checkboxSize, checkboxSize);
-    // Checkmark
+    // Checkmark - positions relative to checkbox size
     ctx.strokeStyle = COLORS.text;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(checkboxX + 6, faceToFaceY + 15);
-    ctx.lineTo(checkboxX + 12, faceToFaceY + 22);
-    ctx.lineTo(checkboxX + 24, faceToFaceY + 8);
+    ctx.moveTo(checkboxX + checkboxSize * 0.2, faceToFaceY + checkboxSize * 0.5);
+    ctx.lineTo(checkboxX + checkboxSize * 0.4, faceToFaceY + checkboxSize * 0.73);
+    ctx.lineTo(checkboxX + checkboxSize * 0.8, faceToFaceY + checkboxSize * 0.27);
     ctx.stroke();
   } else {
     ctx.strokeStyle = COLORS.panel;
@@ -317,21 +316,21 @@ function renderSetupScreen(state: AppState): void {
 
   // Label
   ctx.fillStyle = COLORS.text;
-  ctx.font = '16px sans-serif';
+  ctx.font = font(minDim, 'small');
   ctx.textAlign = 'left';
-  ctx.fillText('Face-to-face mode', labelX, faceToFaceY + checkboxSize / 2 + 5);
+  ctx.fillText('Face-to-face mode', labelX, faceToFaceY + checkboxSize / 2 + scale(minDim, 0.00625));
   ctx.textAlign = 'center';
 
   buttons.push({
-    x: checkboxX, y: faceToFaceY, width: 300, height: checkboxSize,
+    x: checkboxX, y: faceToFaceY, width: checkboxHitWidth, height: checkboxSize,
     label: 'Toggle Face-to-face',
     action: toggleFaceToFaceMode,
     type: 'standard',
   });
 
   // Start button
-  const startBtnWidth = 200;
-  const startBtnHeight = 60;
+  const startBtnWidth = scale(minDim, LAYOUT.buttonWidth.large);
+  const startBtnHeight = scale(minDim, LAYOUT.buttonHeight.large);
   const startBtnX = centerX - startBtnWidth / 2;
   const startBtnY = height * 0.66;
 
@@ -339,8 +338,8 @@ function renderSetupScreen(state: AppState): void {
   ctx.fillRect(startBtnX, startBtnY, startBtnWidth, startBtnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 24px sans-serif';
-  ctx.fillText('START GAME', centerX, startBtnY + startBtnHeight / 2 + 8);
+  ctx.font = font(minDim, 'large', 'bold');
+  ctx.fillText('START GAME', centerX, startBtnY + startBtnHeight / 2 + scale(minDim, 0.01));
 
   buttons.push({
     x: startBtnX, y: startBtnY, width: startBtnWidth, height: startBtnHeight,
@@ -351,17 +350,17 @@ function renderSetupScreen(state: AppState): void {
 
   // Admin test button (only visible if admin query param is present)
   if (getIsAdminMode()) {
-    const adminBtnWidth = 200;
-    const adminBtnHeight = 50;
+    const adminBtnWidth = scale(minDim, LAYOUT.buttonWidth.large);
+    const adminBtnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
     const adminBtnX = centerX - adminBtnWidth / 2;
-    const adminBtnY = startBtnY + startBtnHeight + 20;
+    const adminBtnY = startBtnY + startBtnHeight + scale(minDim, LAYOUT.gap.large);
 
     ctx.fillStyle = '#e74c3c';
     ctx.fillRect(adminBtnX, adminBtnY, adminBtnWidth, adminBtnHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('ADMIN TESTS', centerX, adminBtnY + adminBtnHeight / 2 + 6);
+    ctx.font = font(minDim, 'normal', 'bold');
+    ctx.fillText('ADMIN TESTS', centerX, adminBtnY + adminBtnHeight / 2 + scale(minDim, 0.0075));
 
     buttons.push({
       x: adminBtnX, y: adminBtnY, width: adminBtnWidth, height: adminBtnHeight,
@@ -377,14 +376,14 @@ function renderAdminTestScreen(_state: AppState): void {
 
   // Title
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 36px sans-serif';
+  ctx.font = font(minDim, 'heading', 'bold');
   ctx.textAlign = 'center';
   ctx.fillText('ADMIN TEST SCREEN', centerX, height * 0.12);
 
   // Test scenario buttons
-  const btnWidth = Math.min(400, width - 40);
-  const btnHeight = 60;
-  const btnGap = 15;
+  const btnWidth = Math.min(scale(minDim, LAYOUT.admin.buttonWidth), width - scale(minDim, LAYOUT.boardPadding * 2));
+  const btnHeight = scale(minDim, LAYOUT.admin.buttonHeight);
+  const btnGap = scale(minDim, LAYOUT.admin.buttonGap);
   const startY = height * 0.22;
 
   const testScenarios = [
@@ -405,9 +404,9 @@ function renderAdminTestScreen(_state: AppState): void {
     ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = font(minDim, 'button', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText(scenario.label, centerX, btnY + btnHeight / 2 + 7);
+    ctx.fillText(scenario.label, centerX, btnY + btnHeight / 2 + scale(minDim, 0.00875));
 
     buttons.push({
       x: btnX, y: btnY, width: btnWidth, height: btnHeight,
@@ -418,17 +417,17 @@ function renderAdminTestScreen(_state: AppState): void {
   });
 
   // Back button
-  const backBtnWidth = 150;
-  const backBtnHeight = 50;
+  const backBtnWidth = scale(minDim, LAYOUT.buttonWidth.small);
+  const backBtnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
   const backBtnX = centerX - backBtnWidth / 2;
-  const backBtnY = height - backBtnHeight - 30;
+  const backBtnY = height - backBtnHeight - scale(minDim, LAYOUT.gap.large * 1.5);
 
   ctx.fillStyle = COLORS.panel;
   ctx.fillRect(backBtnX, backBtnY, backBtnWidth, backBtnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('BACK', centerX, backBtnY + backBtnHeight / 2 + 6);
+  ctx.font = font(minDim, 'normal', 'bold');
+  ctx.fillText('BACK', centerX, backBtnY + backBtnHeight / 2 + scale(minDim, 0.0075));
 
   buttons.push({
     x: backBtnX, y: backBtnY, width: backBtnWidth, height: backBtnHeight,
@@ -450,20 +449,19 @@ function renderGameScreen(state: AppState): void {
     : currentPlayerIdx;
 
   // Player panels at top
-  const panelHeight = 80;
+  const panelHeight = scale(minDim, LAYOUT.panelHeight);
   renderPlayerPanels(game, currentPlayerIdx, panelHeight);
 
-  // Board display
-  const boardTop = panelHeight + 20;
-  const boardSize = Math.min(width - 40, height - panelHeight - 270);
-  const boardLeft = (width - boardSize) / 2;
+  // Board display - use centralized layout
+  const layout = getBoardLayout(width, height, game.boardSize);
+  const { boardLeft, boardTop, boardSize } = layout;
 
   // Fill background below panels with displayed player's color
   ctx.fillStyle = getPlayerColor(displayPlayerIdx as 0 | 1, false);
   ctx.fillRect(0, panelHeight, width, height - panelHeight);
 
   // Draw player color border around the board (brighter)
-  const borderWidth = 6;
+  const borderWidth = scale(minDim, LAYOUT.boardBorderWidth);
   ctx.fillStyle = getPlayerColor(displayPlayerIdx as 0 | 1, true);
   ctx.fillRect(
     boardLeft - borderWidth,
@@ -475,14 +473,14 @@ function renderGameScreen(state: AppState): void {
   renderBoard(game.players[displayPlayerIdx], boardLeft, boardTop, boardSize);
 
   // Available patches
-  const patchesTop = boardTop + boardSize + 20;
+  const patchesTop = boardTop + boardSize + scale(minDim, LAYOUT.gap.large);
   renderAvailablePatches(game, boardLeft, patchesTop, boardSize);
 
   // Skip button
   const skipBtnWidth = boardSize;
-  const skipBtnHeight = 50;
+  const skipBtnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
   const skipBtnX = boardLeft;
-  const skipBtnY = height - skipBtnHeight - 20;
+  const skipBtnY = height - skipBtnHeight - scale(minDim, LAYOUT.gap.large);
 
   // Calculate skip amount
   const currentPlayer = game.players[currentPlayerIdx];
@@ -494,12 +492,12 @@ function renderGameScreen(state: AppState): void {
   ctx.fillRect(skipBtnX, skipBtnY, skipBtnWidth, skipBtnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 20px sans-serif';
+  ctx.font = font(minDim, 'button', 'bold');
   ctx.textAlign = 'center';
   const skipText = isConfirming
     ? 'TAP AGAIN TO CONFIRM'
     : `SKIP & MOVE AHEAD (+${spacesToSkip})`;
-  ctx.fillText(skipText, skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + 7);
+  ctx.fillText(skipText, skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + scale(minDim, 0.00875));
 
   buttons.push({
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,
@@ -509,8 +507,8 @@ function renderGameScreen(state: AppState): void {
   });
 
   // Toggle map button (above skip button)
-  const mapBtnHeight = 40;
-  const mapBtnGap = 10;
+  const mapBtnHeight = scale(minDim, LAYOUT.buttonHeight.small);
+  const mapBtnGap = scale(minDim, LAYOUT.gap.medium);
   const mapBtnX = skipBtnX;
   const mapBtnY = skipBtnY - mapBtnHeight - mapBtnGap;
   const mapBtnWidth = skipBtnWidth;
@@ -519,9 +517,9 @@ function renderGameScreen(state: AppState): void {
   ctx.fillRect(mapBtnX, mapBtnY, mapBtnWidth, mapBtnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 14px sans-serif';
+  ctx.font = font(minDim, 'info', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('TOGGLE MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + 5);
+  ctx.fillText('TOGGLE MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + scale(minDim, 0.00625));
 
   buttons.push({
     x: mapBtnX, y: mapBtnY, width: mapBtnWidth, height: mapBtnHeight,
@@ -535,6 +533,12 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
   const panelWidth = width / 2;
   const overtakeDistance = getOvertakeDistance(game);
 
+  // Y positions relative to panel height
+  const nameY = panelHeight * 0.225;
+  const buttonsY = panelHeight * 0.475;
+  const incomeY = panelHeight * 0.6875;
+  const turnY = panelHeight * 0.9;
+
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
     const x = i * panelWidth;
@@ -545,33 +549,34 @@ function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeig
     ctx.fillRect(x, 0, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = isActive ? 'bold 16px sans-serif' : '16px sans-serif';
+    ctx.font = isActive ? font(minDim, 'small', 'bold') : font(minDim, 'small');
     ctx.textAlign = 'center';
 
     const centerX = x + panelWidth / 2;
-    ctx.fillText(player.name, centerX, 18);
-    ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, 38);
+    ctx.fillText(player.name, centerX, nameY);
+    ctx.fillText(`Buttons: ${player.buttons}   Pos: ${player.position}/${game.timeTrackLength}`, centerX, buttonsY);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = '12px sans-serif';
+    ctx.font = font(minDim, 'tiny');
 
     // Income info
     const incomeDistance = getNextIncomeDistance(game, playerIdx);
     const incomeText = incomeDistance !== null ? `+${player.income} in ${incomeDistance}` : `+${player.income} (done)`;
-    ctx.fillText(incomeText, centerX, 55);
+    ctx.fillText(incomeText, centerX, incomeY);
 
     // Turn ends info (only for current player) or 7x7 bonus indicator
     if (isActive) {
-      ctx.fillText(`Turn ends in: ${overtakeDistance}`, centerX, 72);
+      ctx.fillText(`Turn ends in: ${overtakeDistance}`, centerX, turnY);
     }
 
     // 7x7 bonus indicator
     if (player.bonus7x7Area !== null) {
       ctx.fillStyle = COLORS.bonus7x7;
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText('+7 Bonus', centerX + (isActive ? 60 : 0), 72);
+      ctx.font = font(minDim, 'tiny', 'bold');
+      const bonusOffset = isActive ? scale(minDim, 0.075) : 0;
+      ctx.fillText('+7 Bonus', centerX + bonusOffset, turnY);
       ctx.fillStyle = COLORS.text;
-      ctx.font = '12px sans-serif';
+      ctx.font = font(minDim, 'tiny');
     }
 
     // Register button for opponent's panel (tap and hold to preview their board)
@@ -612,10 +617,10 @@ function drawButtonIndicators(
   const indicatorCells = cells.slice(0, buttonIncome);
 
   ctx.fillStyle = COLORS.buttonIndicator;
+  const radius = cellSize * 0.25; // 25% of cell size
   for (const {row, col} of indicatorCells) {
     const cx = startX + col * cellSize + cellSize / 2;
     const cy = startY + row * cellSize + cellSize / 2;
-    const radius = cellSize * 0.25;
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -629,7 +634,8 @@ function renderBoard(player: Player, x: number, y: number, size: number): void {
 function renderAvailablePatches(game: GameState, x: number, y: number, totalWidth: number): void {
   const patches = getAvailablePatches(game);
   const patchAreaWidth = totalWidth / 3;
-  const patchAreaHeight = 100;
+  const patchAreaHeight = scale(minDim, LAYOUT.patchPanelHeight);
+  const patchMargin = scale(minDim, LAYOUT.gap.small);
 
   patches.forEach((patch, i) => {
     const patchX = x + i * patchAreaWidth;
@@ -637,22 +643,31 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
 
     // Background
     ctx.fillStyle = canBuy ? COLORS.panel : COLORS.buttonDisabled;
-    ctx.fillRect(patchX + 5, y, patchAreaWidth - 10, patchAreaHeight);
+    ctx.fillRect(patchX + patchMargin, y, patchAreaWidth - patchMargin * 2, patchAreaHeight);
 
     // Draw patch shape
     const shape = patch.shape;
     const maxDim = Math.max(shape.length, shape[0].length);
-    const cellSize = Math.min(40, (patchAreaWidth - 30) / maxDim, 50 / maxDim);
+    const maxCellSize = scale(minDim, LAYOUT.patch.maxCellSize);
+    const availableWidth = patchAreaWidth - scale(minDim, 0.0375);
+    const cellSize = Math.min(maxCellSize, availableWidth / maxDim, scale(minDim, 0.0625) / maxDim);
+    // Cell padding must be relative to cell size, not minDim
+    const cellPadding = Math.max(1, cellSize * 0.02);
     const shapeWidth = shape[0].length * cellSize;
     const shapeX = patchX + (patchAreaWidth - shapeWidth) / 2;
-    const shapeY = y + 10;
+    const shapeY = y + scale(minDim, LAYOUT.gap.medium);
 
     const patchColor = getPatchColor(patch.id);
     ctx.fillStyle = canBuy ? patchColor : adjustColorOpacity(patchColor, 0.4);
     for (let row = 0; row < shape.length; row++) {
       for (let col = 0; col < shape[row].length; col++) {
         if (shape[row][col]) {
-          ctx.fillRect(shapeX + col * cellSize + 1, shapeY + row * cellSize + 1, cellSize - 2, cellSize - 2);
+          ctx.fillRect(
+            shapeX + col * cellSize + cellPadding,
+            shapeY + row * cellSize + cellPadding,
+            cellSize - cellPadding * 2,
+            cellSize - cellPadding * 2
+          );
         }
       }
     }
@@ -662,14 +677,14 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
 
     // Cost info
     ctx.fillStyle = COLORS.text;
-    ctx.font = '12px sans-serif';
+    ctx.font = font(minDim, 'tiny');
     ctx.textAlign = 'center';
-    const infoY = y + patchAreaHeight - 10;
+    const infoY = y + patchAreaHeight - scale(minDim, LAYOUT.gap.medium);
     ctx.fillText(`Cost: ${patch.buttonCost}  Time: ${patch.timeCost}`, patchX + patchAreaWidth / 2, infoY);
 
     if (canBuy) {
       buttons.push({
-        x: patchX + 5, y, width: patchAreaWidth - 10, height: patchAreaHeight,
+        x: patchX + patchMargin, y, width: patchAreaWidth - patchMargin * 2, height: patchAreaHeight,
         label: `Patch ${i + 1}`,
         action: () => {}, // Handled by mousedown/touchstart in input.ts
         type: 'patch',
@@ -704,38 +719,37 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillRect(0, 0, width, height);
 
   // Top panel (same height as player panels to maintain board position)
-  const panelHeight = 80;
+  const panelHeight = scale(minDim, LAYOUT.panelHeight);
 
   if (isLeatherPatch) {
     // Show "LEATHER PATCH" label at top
     ctx.fillStyle = COLORS.leatherPatch;
     ctx.fillRect(0, 0, width, panelHeight);
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = font(minDim, 'normal', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText('LEATHER PATCH', width / 2, panelHeight / 2 + 7);
+    ctx.fillText('LEATHER PATCH', width / 2, panelHeight / 2 + scale(minDim, 0.00875));
   } else {
     // Show player name at top (matching game screen panel style)
     ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, true);
     ctx.fillRect(0, 0, width, panelHeight);
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = font(minDim, 'normal', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText(`${player.name} - Place Patch`, width / 2, panelHeight / 2 + 7);
+    ctx.fillText(`${player.name} - Place Patch`, width / 2, panelHeight / 2 + scale(minDim, 0.00875));
   }
 
   const shape = getTransformedShape(patch.shape, placement.rotation, placement.reflected);
   const canPlace = canPlacePatch(player.board, shape, placement.x, placement.y);
 
   // Board with ghost (same size and position as game screen)
-  const boardTop = panelHeight + 20;
-  const boardSize = Math.min(width - 40, height - panelHeight - 270);
-  const boardLeft = (width - boardSize) / 2;
+  const layout = getBoardLayout(width, height, game.boardSize);
+  const { boardLeft, boardTop, boardSize } = layout;
 
   renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
   // Patch info panel (below board)
-  const infoY = boardTop + boardSize + 25;
+  const infoY = boardTop + boardSize + scale(minDim, 0.03125);
   const filledCells = shape.flat().filter(cell => cell === 1).length;
   const scoreDelta = (filledCells * 2) - patch.buttonCost;
   const infoText = isLeatherPatch
@@ -743,25 +757,25 @@ function renderPlacementScreen(state: AppState): void {
     : `Cells: ${filledCells} | Cost: ${patch.buttonCost} | Time: ${patch.timeCost} | Income: ${patch.buttonIncome} | Score: ${scoreDelta >= 0 ? '+' : ''}${scoreDelta}`;
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = '16px sans-serif';
+  ctx.font = font(minDim, 'small');
   ctx.textAlign = 'center';
   ctx.fillText(infoText, width / 2, infoY);
 
   // Button dimensions
-  const btnHeight = 50;
-  const btnGap = 10;
+  const btnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
+  const btnGap = scale(minDim, LAYOUT.gap.medium);
   const btnWidth = (boardSize - btnGap) / 2;
 
   // Rotate/Reflect buttons right under patch info
-  const rotateRowY = infoY + 20;
+  const rotateRowY = infoY + scale(minDim, LAYOUT.gap.large);
 
   // Rotate button (left)
   ctx.fillStyle = COLORS.panel;
   ctx.fillRect(boardLeft, rotateRowY, btnWidth, btnHeight);
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = font(minDim, 'normal', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('ROTATE', boardLeft + btnWidth / 2, rotateRowY + btnHeight / 2 + 6);
+  ctx.fillText('ROTATE', boardLeft + btnWidth / 2, rotateRowY + btnHeight / 2 + scale(minDim, 0.0075));
   buttons.push({ x: boardLeft, y: rotateRowY, width: btnWidth, height: btnHeight, label: 'Rotate', action: rotate, type: 'standard' });
 
   // Reflect button (right)
@@ -769,21 +783,21 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = COLORS.panel;
   ctx.fillRect(reflectX, rotateRowY, btnWidth, btnHeight);
   ctx.fillStyle = COLORS.text;
-  ctx.fillText('REFLECT', reflectX + btnWidth / 2, rotateRowY + btnHeight / 2 + 6);
+  ctx.fillText('REFLECT', reflectX + btnWidth / 2, rotateRowY + btnHeight / 2 + scale(minDim, 0.0075));
   buttons.push({ x: reflectX, y: rotateRowY, width: btnWidth, height: btnHeight, label: 'Reflect', action: reflect, type: 'standard' });
 
   // Cancel/Confirm buttons at bottom
-  const bottomRowY = height - btnHeight - 20;
+  const bottomRowY = height - btnHeight - scale(minDim, LAYOUT.gap.large);
 
   // Toggle map button (above cancel/confirm)
-  const mapBtnHeight = 40;
+  const mapBtnHeight = scale(minDim, LAYOUT.buttonHeight.small);
   const mapBtnY = bottomRowY - mapBtnHeight - btnGap;
   ctx.fillStyle = COLORS.panel;
   ctx.fillRect(boardLeft, mapBtnY, boardSize, mapBtnHeight);
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 14px sans-serif';
+  ctx.font = font(minDim, 'info', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('TOGGLE MAP', boardLeft + boardSize / 2, mapBtnY + mapBtnHeight / 2 + 5);
+  ctx.fillText('TOGGLE MAP', boardLeft + boardSize / 2, mapBtnY + mapBtnHeight / 2 + scale(minDim, 0.00625));
   buttons.push({
     x: boardLeft, y: mapBtnY, width: boardSize, height: mapBtnHeight,
     label: 'Toggle Map',
@@ -796,9 +810,9 @@ function renderPlacementScreen(state: AppState): void {
     ctx.fillStyle = '#c0392b';
     ctx.fillRect(boardLeft, bottomRowY, btnWidth, btnHeight);
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = font(minDim, 'normal', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText('CANCEL', boardLeft + btnWidth / 2, bottomRowY + btnHeight / 2 + 6);
+    ctx.fillText('CANCEL', boardLeft + btnWidth / 2, bottomRowY + btnHeight / 2 + scale(minDim, 0.0075));
     buttons.push({ x: boardLeft, y: bottomRowY, width: btnWidth, height: btnHeight, label: 'Cancel', action: cancelPlacement, type: 'standard' });
   }
 
@@ -808,9 +822,9 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = canPlace ? COLORS.button : COLORS.buttonDisabled;
   ctx.fillRect(confirmX, bottomRowY, confirmWidth, btnHeight);
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = font(minDim, 'normal', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('CONFIRM', confirmX + confirmWidth / 2, bottomRowY + btnHeight / 2 + 6);
+  ctx.fillText('CONFIRM', confirmX + confirmWidth / 2, bottomRowY + btnHeight / 2 + scale(minDim, 0.0075));
   if (canPlace) {
     buttons.push({ x: confirmX, y: bottomRowY, width: confirmWidth, height: btnHeight, label: 'Confirm', action: confirmPlacement, type: 'standard' });
   }
@@ -845,32 +859,34 @@ function renderGameEndScreen(state: AppState): void {
 
   // Title
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 36px sans-serif';
+  ctx.font = font(minDim, 'heading', 'bold');
   ctx.textAlign = 'center';
   ctx.fillText('GAME OVER', centerX, height * 0.08);
 
   // Player score panels (compact)
+  const panelWidth = scale(minDim, LAYOUT.scorePanel.width);
+  const panelHeight = scale(minDim, LAYOUT.scorePanel.height);
+  const panelGap = scale(minDim, LAYOUT.scorePanel.gap);
+
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
     const score = calculateScore(player);
     const isWinner = winner === i;
 
-    const yPos = height * 0.15 + i * 70;
-    const panelX = centerX - 150;
-    const panelY = yPos - 20;
-    const panelWidth = 300;
-    const panelHeight = 60;
+    const yPos = height * 0.15 + i * panelGap;
+    const panelX = centerX - panelWidth / 2;
+    const panelY = yPos - scale(minDim, LAYOUT.gap.large);
 
     ctx.fillStyle = isWinner ? COLORS.panelActive : COLORS.panel;
     ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = isWinner ? 'bold 18px sans-serif' : '18px sans-serif';
+    ctx.font = isWinner ? font(minDim, 'normal', 'bold') : font(minDim, 'normal');
     ctx.fillText(`${player.name}: ${score} points`, centerX, yPos);
 
-    ctx.font = '12px sans-serif';
+    ctx.font = font(minDim, 'tiny');
     const emptySpaces = countEmptySpaces(player.board);
-    ctx.fillText(`(${player.buttons} btns - ${emptySpaces * 2} penalty) · Tap to preview`, centerX, yPos + 20);
+    ctx.fillText(`(${player.buttons} btns - ${emptySpaces * 2} penalty) · Tap to preview`, centerX, yPos + scale(minDim, LAYOUT.gap.large));
 
     const playerIdx = i;
     buttons.push({
@@ -885,15 +901,15 @@ function renderGameEndScreen(state: AppState): void {
   let tabY = height * 0.32;
   if (winner === 'tie') {
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText("It's a tie!", centerX, tabY - 10);
-    tabY += 15;
+    ctx.font = font(minDim, 'normal', 'bold');
+    ctx.fillText("It's a tie!", centerX, tabY - scale(minDim, LAYOUT.gap.medium));
+    tabY += scale(minDim, LAYOUT.admin.buttonGap);
   }
 
   // Tab buttons
-  const tabWidth = 120;
-  const tabHeight = 40;
-  const tabGap = 10;
+  const tabWidth = scale(minDim, LAYOUT.tab.width);
+  const tabHeight = scale(minDim, LAYOUT.tab.height);
+  const tabGap = scale(minDim, LAYOUT.tab.gap);
   const tabsWidth = tabWidth * 2 + tabGap;
   const tabsX = centerX - tabsWidth / 2;
 
@@ -910,9 +926,9 @@ function renderGameEndScreen(state: AppState): void {
     ctx.fillRect(tx, tabY, tabWidth, tabHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = isActive ? 'bold 16px sans-serif' : '16px sans-serif';
+    ctx.font = isActive ? font(minDim, 'small', 'bold') : font(minDim, 'small');
     ctx.textAlign = 'center';
-    ctx.fillText(tab.label, tx + tabWidth / 2, tabY + tabHeight / 2 + 5);
+    ctx.fillText(tab.label, tx + tabWidth / 2, tabY + tabHeight / 2 + scale(minDim, 0.00625));
 
     buttons.push({
       x: tx, y: tabY, width: tabWidth, height: tabHeight,
@@ -923,8 +939,9 @@ function renderGameEndScreen(state: AppState): void {
   });
 
   // Tab content area
-  const contentY = tabY + tabHeight + 15;
-  const contentHeight = height * 0.82 - contentY - 80; // Leave room for play again button
+  const contentY = tabY + tabHeight + scale(minDim, LAYOUT.admin.buttonGap);
+  const playBtnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
+  const contentHeight = height * 0.82 - contentY - playBtnHeight - scale(minDim, LAYOUT.gap.large);
 
   if (state.gameEndTab === 'summary') {
     // Summary stats
@@ -932,13 +949,13 @@ function renderGameEndScreen(state: AppState): void {
       const stats = calculateStats(state.historyManager.history);
 
       ctx.fillStyle = COLORS.text;
-      ctx.font = 'bold 16px sans-serif';
+      ctx.font = font(minDim, 'small', 'bold');
       ctx.textAlign = 'center';
-      ctx.fillText('Game Stats', centerX, contentY + 20);
+      ctx.fillText('Game Stats', centerX, contentY + scale(minDim, LAYOUT.gap.large));
 
-      ctx.font = '14px sans-serif';
-      const lineHeight = 22;
-      let y = contentY + 50;
+      ctx.font = font(minDim, 'info');
+      const lineHeight = scale(minDim, 0.0275);
+      let y = contentY + scale(minDim, 0.0625);
 
       ctx.fillText(`Total turns: ${stats.totalTurns}`, centerX, y);
       y += lineHeight;
@@ -964,25 +981,25 @@ function renderGameEndScreen(state: AppState): void {
     // Charts tab
     if (state.historyManager) {
       const chartData = calculateChartData(state.historyManager.history);
-      const chartWidth = Math.min(width - 40, 400);
+      const chartWidth = Math.min(width - scale(minDim, LAYOUT.boardPadding * 2), scale(minDim, 0.5));
       const chartX = centerX - chartWidth / 2;
-      renderCharts(ctx, chartData, chartX, contentY, chartWidth, contentHeight);
+      renderCharts(ctx, chartData, chartX, contentY, chartWidth, contentHeight, minDim);
     }
   }
 
   // Play again button
-  const btnWidth = 200;
-  const btnHeight = 50;
+  const btnWidth = scale(minDim, LAYOUT.buttonWidth.large);
+  const btnHeight = playBtnHeight;
   const btnX = centerX - btnWidth / 2;
-  const btnY = height - btnHeight - 20;
+  const btnY = height - btnHeight - scale(minDim, LAYOUT.gap.large);
 
   ctx.fillStyle = COLORS.button;
   ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 20px sans-serif';
+  ctx.font = font(minDim, 'button', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('PLAY AGAIN', centerX, btnY + btnHeight / 2 + 7);
+  ctx.fillText('PLAY AGAIN', centerX, btnY + btnHeight / 2 + scale(minDim, 0.00875));
 
   buttons.push({
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
@@ -1015,25 +1032,25 @@ function renderBoardPreview(state: AppState): void {
 
   // Title with player name
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 36px sans-serif';
+  ctx.font = font(minDim, 'heading', 'bold');
   ctx.textAlign = 'center';
   ctx.fillText(`${player.name}'s Board`, centerX, height * 0.08);
 
   // Score summary
   const score = calculateScore(player);
   const emptySpaces = countEmptySpaces(player.board);
-  ctx.font = '20px sans-serif';
+  ctx.font = font(minDim, 'button');
   ctx.fillText(`Score: ${score} (${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, height * 0.14);
 
-  // Render board large and centered
+  // Render board large and centered (85% of width, 65% of height)
   const boardSize = Math.min(width * 0.85, height * 0.65);
   const boardX = centerX - boardSize / 2;
   const boardY = height * 0.18;
   renderBoard(player, boardX, boardY, boardSize);
 
   // Back button
-  const btnWidth = 150;
-  const btnHeight = 50;
+  const btnWidth = scale(minDim, LAYOUT.buttonWidth.small);
+  const btnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
   const btnX = centerX - btnWidth / 2;
   const btnY = height * 0.9;
 
@@ -1041,8 +1058,8 @@ function renderBoardPreview(state: AppState): void {
   ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('BACK', centerX, btnY + btnHeight / 2 + 7);
+  ctx.font = font(minDim, 'button', 'bold');
+  ctx.fillText('BACK', centerX, btnY + btnHeight / 2 + scale(minDim, 0.00875));
 
   buttons.push({
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,
@@ -1065,12 +1082,12 @@ function renderMapViewScreen(state: AppState): void {
   ctx.fillRect(0, 0, width, height);
 
   // Calculate dimensions based on screen size
-  const minDim = Math.min(width, height);
-  const trackRadius = minDim * 0.18;
-  const patchRingRadius = minDim * 0.42;
+  const trackRadius = scale(minDim, LAYOUT.map.trackRadius);
+  const patchRingRadius = scale(minDim, LAYOUT.map.patchRingRadius);
 
   // Draw square background behind the patch ring area
-  const bgSize = patchRingRadius * 2 + 60;  // Add padding around patches
+  const bgPadding = scale(minDim, 0.075);
+  const bgSize = patchRingRadius * 2 + bgPadding;
   ctx.fillStyle = COLORS.boardBg;
   ctx.fillRect(centerX - bgSize / 2, centerY - bgSize / 2, bgSize, bgSize);
 
@@ -1078,17 +1095,17 @@ function renderMapViewScreen(state: AppState): void {
   renderCircularTimeTrack(game, centerX, centerY, trackRadius);
 
   // Render patches arranged in a circle around the track
-  renderPatchRing(game, centerX, centerY, trackRadius + 50, patchRingRadius);
+  const innerRadius = trackRadius + scale(minDim, 0.0625);
+  renderPatchRing(game, centerX, centerY, innerRadius, patchRingRadius);
 
-  // Toggle map button (above where skip button would be on game screen)
-  const panelHeight = 80;
-  const boardSize = Math.min(width - 40, height - panelHeight - 270);
-  const boardLeft = (width - boardSize) / 2;
-  const skipBtnHeight = 50;
-  const skipBtnY = height - skipBtnHeight - 20;
+  // Toggle map button (same position as game screen)
+  const layout = getBoardLayout(width, height, game.boardSize);
+  const { boardLeft, boardSize } = layout;
+  const skipBtnHeight = scale(minDim, LAYOUT.buttonHeight.medium);
+  const skipBtnY = height - skipBtnHeight - scale(minDim, LAYOUT.gap.large);
 
-  const mapBtnHeight = 40;
-  const mapBtnGap = 10;
+  const mapBtnHeight = scale(minDim, LAYOUT.buttonHeight.small);
+  const mapBtnGap = scale(minDim, LAYOUT.gap.medium);
   const mapBtnX = boardLeft;
   const mapBtnY = skipBtnY - mapBtnHeight - mapBtnGap;
   const mapBtnWidth = boardSize;
@@ -1097,9 +1114,9 @@ function renderMapViewScreen(state: AppState): void {
   ctx.fillRect(mapBtnX, mapBtnY, mapBtnWidth, mapBtnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 14px sans-serif';
+  ctx.font = font(minDim, 'info', 'bold');
   ctx.textAlign = 'center';
-  ctx.fillText('TOGGLE MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + 5);
+  ctx.fillText('TOGGLE MAP', mapBtnX + mapBtnWidth / 2, mapBtnY + mapBtnHeight / 2 + scale(minDim, 0.00625));
 
   buttons.push({
     x: mapBtnX, y: mapBtnY, width: mapBtnWidth, height: mapBtnHeight,
@@ -1121,13 +1138,15 @@ function renderCircularTimeTrack(
 
   // Draw track circle background
   ctx.strokeStyle = COLORS.boardGrid;
-  ctx.lineWidth = 20;
+  ctx.lineWidth = scale(minDim, LAYOUT.map.trackLineWidth);
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.stroke();
 
   // Draw position markers around the circle and register clickable areas
-  const hitRadius = 18; // Clickable area radius
+  const hitRadius = scale(minDim, LAYOUT.map.hitRadius);
+  const positionMarkerRadius = scale(minDim, LAYOUT.map.positionMarkerRadius);
+
   for (let pos = 0; pos <= trackLength; pos++) {
     const angle = (pos / trackLength) * Math.PI * 2 - Math.PI / 2; // Start from top
 
@@ -1137,7 +1156,7 @@ function renderCircularTimeTrack(
     // Draw regular position marker (small dot)
     ctx.fillStyle = COLORS.text;
     ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.arc(x, y, positionMarkerRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // Register clickable area for this position
@@ -1155,6 +1174,7 @@ function renderCircularTimeTrack(
 
   // Draw markers BETWEEN cells (at position + 0.5)
   // Income checkpoints
+  const incomeCheckpointRadius = scale(minDim, LAYOUT.map.incomeCheckpointRadius);
   for (const incomePos of game.incomePositions) {
     const angle = ((incomePos + 0.5) / trackLength) * Math.PI * 2 - Math.PI / 2;
     const x = centerX + Math.cos(angle) * radius;
@@ -1162,11 +1182,12 @@ function renderCircularTimeTrack(
 
     ctx.fillStyle = COLORS.buttonIndicator;
     ctx.beginPath();
-    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.arc(x, y, incomeCheckpointRadius, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // Leather patches (uncollected only)
+  const leatherPatchSize = scale(minDim, LAYOUT.map.leatherPatchSize);
   for (const lp of game.leatherPatches) {
     if (lp.collected) continue;
     const angle = ((lp.position + 0.5) / trackLength) * Math.PI * 2 - Math.PI / 2;
@@ -1174,11 +1195,12 @@ function renderCircularTimeTrack(
     const y = centerY + Math.sin(angle) * radius;
 
     ctx.fillStyle = COLORS.leatherPatch;
-    const patchSize = 14;
-    ctx.fillRect(x - patchSize / 2, y - patchSize / 2, patchSize, patchSize);
+    ctx.fillRect(x - leatherPatchSize / 2, y - leatherPatchSize / 2, leatherPatchSize, leatherPatchSize);
   }
 
   // Draw player tokens
+  const playerTokenRadius = scale(minDim, LAYOUT.map.playerTokenRadius);
+  const tokenOffset = playerTokenRadius;
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
     const pos = Math.min(player.position, trackLength);
@@ -1186,23 +1208,23 @@ function renderCircularTimeTrack(
 
     // Offset tokens if players on same position
     const samePos = game.players[0].position === game.players[1].position;
-    const offset = samePos ? (i === 0 ? -16 : 16) : 0;
-    const tokenRadius = radius + offset;
+    const offset = samePos ? (i === 0 ? -tokenOffset : tokenOffset) : 0;
+    const tokenRadiusPos = radius + offset;
 
-    const x = centerX + Math.cos(angle) * tokenRadius;
-    const y = centerY + Math.sin(angle) * tokenRadius;
+    const x = centerX + Math.cos(angle) * tokenRadiusPos;
+    const y = centerY + Math.sin(angle) * tokenRadiusPos;
 
     // Draw player token (colored circle)
     ctx.fillStyle = i === 0 ? COLORS.player1 : COLORS.player2;
     ctx.beginPath();
-    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.arc(x, y, playerTokenRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // Player number inside token
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = font(minDim, 'info', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), x, y + 5);
+    ctx.fillText(String(i + 1), x, y + scale(minDim, 0.00625));
   }
 
   // Draw track info in center
@@ -1213,16 +1235,16 @@ function renderCircularTimeTrack(
     // Show distance from current player to tapped position
     const distance = lastTappedTrackPos - currentPlayerPos;
     const distanceText = distance > 0 ? `+${distance}` : String(distance);
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(distanceText, centerX, centerY - 2);
-    ctx.font = '12px sans-serif';
-    ctx.fillText('spaces', centerX, centerY + 16);
+    ctx.font = font(minDim, 'large', 'bold');
+    ctx.fillText(distanceText, centerX, centerY - scale(minDim, 0.0025));
+    ctx.font = font(minDim, 'tiny');
+    ctx.fillText('spaces', centerX, centerY + scale(minDim, LAYOUT.gap.large));
   } else {
     // Show track length
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText(`${trackLength}`, centerX, centerY - 4);
-    ctx.font = '12px sans-serif';
-    ctx.fillText('spaces', centerX, centerY + 16);
+    ctx.font = font(minDim, 'normal', 'bold');
+    ctx.fillText(`${trackLength}`, centerX, centerY - scale(minDim, 0.005));
+    ctx.font = font(minDim, 'tiny');
+    ctx.fillText('spaces', centerX, centerY + scale(minDim, LAYOUT.gap.large));
   }
 }
 
@@ -1251,8 +1273,8 @@ function renderPatchRing(
   const availablePatches = getAvailablePatches(game);
   const availablePatchIds = new Set(availablePatches.map(p => p.id));
 
-  // Calculate cell size based on patch count
-  const maxCellSize = Math.min(25, (outerRadius - innerRadius) * 0.4);
+  // Calculate cell size based on patch count (relative to radius difference)
+  const maxCellSize = Math.min(scale(minDim, 0.03125), (outerRadius - innerRadius) * 0.4);
 
   for (let i = 0; i < patchCount; i++) {
     const angle = (i / patchCount) * Math.PI * 2 - Math.PI / 2; // Start from top
@@ -1271,19 +1293,21 @@ function renderPatchRing(
   // Draw market position indicator (arrow pointing to first available)
   if (patchCount > 0) {
     const marketAngle = (game.marketPosition / patchCount) * Math.PI * 2 - Math.PI / 2;
-    const markerRadius = innerRadius - 15;
+    const markerOffset = scale(minDim, 0.01875);
+    const markerRadius = innerRadius - markerOffset;
     const mx = centerX + Math.cos(marketAngle) * markerRadius;
     const my = centerY + Math.sin(marketAngle) * markerRadius;
 
-    // Draw arrow pointing outward
+    // Draw arrow pointing outward (size relative to minDim)
+    const arrowSize = scale(minDim, 0.01);
     ctx.fillStyle = COLORS.button;
     ctx.save();
     ctx.translate(mx, my);
     ctx.rotate(marketAngle + Math.PI / 2);
     ctx.beginPath();
-    ctx.moveTo(0, -8);
-    ctx.lineTo(6, 4);
-    ctx.lineTo(-6, 4);
+    ctx.moveTo(0, -arrowSize);
+    ctx.lineTo(arrowSize * 0.75, arrowSize * 0.5);
+    ctx.lineTo(-arrowSize * 0.75, arrowSize * 0.5);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -1304,26 +1328,29 @@ function renderPatchInRing(
 
   // Scale cell size to fit patch
   const cellSize = Math.min(maxCellSize, maxCellSize / Math.max(patchWidth, patchHeight) * 2);
+  const cellPadding = Math.max(1, cellSize * 0.1);
 
   const startX = centerX - (patchWidth * cellSize) / 2;
   const startY = centerY - (patchHeight * cellSize) / 2;
 
   // Highlight available patches
   if (isAvailable) {
+    const highlightPadding = scale(minDim, 0.005);
+    const highlightTopPadding = scale(minDim, 0.015);
     ctx.strokeStyle = COLORS.button;
     ctx.lineWidth = 2;
     ctx.strokeRect(
-      startX - 4,
-      startY - 12,
-      patchWidth * cellSize + 8,
-      patchHeight * cellSize + 24
+      startX - highlightPadding,
+      startY - highlightTopPadding,
+      patchWidth * cellSize + highlightPadding * 2,
+      patchHeight * cellSize + highlightTopPadding + scale(minDim, 0.015)
     );
 
     // Show availability number (1, 2, or 3)
     ctx.fillStyle = COLORS.button;
-    ctx.font = 'bold 10px sans-serif';
+    ctx.font = font(minDim, 'micro', 'bold');
     ctx.textAlign = 'center';
-    ctx.fillText(String(availableIndex + 1), centerX, startY - 3);
+    ctx.fillText(String(availableIndex + 1), centerX, startY - scale(minDim, 0.00375));
   }
 
   // Draw patch cells
@@ -1334,10 +1361,10 @@ function renderPatchInRing(
     for (let col = 0; col < shape[row].length; col++) {
       if (shape[row][col]) {
         ctx.fillRect(
-          startX + col * cellSize + 1,
-          startY + row * cellSize + 1,
-          cellSize - 2,
-          cellSize - 2
+          startX + col * cellSize + cellPadding,
+          startY + row * cellSize + cellPadding,
+          cellSize - cellPadding * 2,
+          cellSize - cellPadding * 2
         );
       }
     }
@@ -1350,15 +1377,15 @@ function renderPatchInRing(
 
   // Cost info below patch (compact)
   ctx.fillStyle = isAvailable ? COLORS.text : adjustColorOpacity(COLORS.text, 0.5);
-  ctx.font = '8px sans-serif';
+  ctx.font = font(minDim, 'micro');
   ctx.textAlign = 'center';
-  ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 8);
+  ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + scale(minDim, 0.01));
 }
 
 function renderToasts(toasts: Toast[]): void {
   const centerX = width / 2;
-  const toastHeight = 50;
-  const toastGap = 10;
+  const toastHeight = scale(minDim, LAYOUT.toast.height);
+  const toastGap = scale(minDim, LAYOUT.toast.gap);
   const totalHeight = toasts.length * toastHeight + (toasts.length - 1) * toastGap;
   const startY = height / 2 - totalHeight / 2 + toastHeight / 2;
 
@@ -1381,18 +1408,18 @@ function calculateToastOpacity(age: number): number {
 
 function renderSingleToast(message: string, centerX: number, centerY: number, opacity: number): void {
   // Measure text to size the background
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = font(minDim, 'normal', 'bold');
   const textMetrics = ctx.measureText(message);
   const textWidth = textMetrics.width;
-  const padding = 20;
+  const padding = scale(minDim, LAYOUT.toast.padding);
   const boxWidth = textWidth + padding * 2;
-  const boxHeight = 50;
+  const boxHeight = scale(minDim, LAYOUT.toast.height);
 
   // Semi-transparent dark background with rounded corners
   ctx.fillStyle = `rgba(0, 0, 0, ${0.8 * opacity})`;
   const boxX = centerX - boxWidth / 2;
   const boxY = centerY - boxHeight / 2;
-  const radius = 10;
+  const radius = scale(minDim, LAYOUT.toast.borderRadius);
 
   ctx.beginPath();
   ctx.moveTo(boxX + radius, boxY);
@@ -1410,6 +1437,6 @@ function renderSingleToast(message: string, centerX: number, centerY: number, op
   // White text with opacity
   ctx.fillStyle = `rgba(236, 240, 241, ${opacity})`;
   ctx.textAlign = 'center';
-  ctx.fillText(message, centerX, centerY + 6);
+  ctx.fillText(message, centerX, centerY + scale(minDim, 0.0075));
 }
 
