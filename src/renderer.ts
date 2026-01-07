@@ -639,6 +639,19 @@ function renderPlacementScreen(state: AppState): void {
   ctx.fillStyle = COLORS.text;
   ctx.fillText('Reflect', reflectBtnX + controlBtnWidth / 2, controlY + controlBtnHeight / 2 + 6);
   buttons.push({ x: reflectBtnX, y: controlY, width: controlBtnWidth, height: controlBtnHeight, label: 'Reflect', action: reflect, type: 'standard' });
+
+  // Patch info panel
+  const infoY = controlY + controlBtnHeight + 25;
+  const filledCells = shape.flat().filter(cell => cell === 1).length;
+  const scoreDelta = (filledCells * 2) - patch.buttonCost;
+  const infoText = isLeatherPatch
+    ? 'Score: +2'
+    : `Cells: ${filledCells} | Cost: ${patch.buttonCost} | Time: ${patch.timeCost} | Income: ${patch.buttonIncome} | Score: ${scoreDelta >= 0 ? '+' : ''}${scoreDelta}`;
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(infoText, width / 2, infoY);
 }
 
 function renderBoardWithGhost(

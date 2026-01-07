@@ -5,9 +5,6 @@ import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
 
-// TODO: patch info during placement
-//  Add a lightweight “patch info” panel during placement (cells, cost/time/income, and projected
-//  score delta) so decisions don’t require mental math.
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
 // TODO: original game balance (placement of letter and income checkboxes)
