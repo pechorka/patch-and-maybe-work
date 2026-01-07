@@ -1,3 +1,5 @@
+import type { HistoryManager } from './history';
+
 export type BoardSize = 9;
 
 export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview' | 'adminTest';
@@ -90,6 +92,7 @@ export interface AppState {
   autoSkipEnabled: boolean;  // True when auto-skip is enabled for players who can't afford any patches
   toasts: Toast[];  // Active toast notifications
   faceToFaceMode: boolean;  // True when screen rotates 180° on player change for face-to-face play
+  historyManager: HistoryManager | null;  // Turn history for stats/undo/replay
 }
 
 export interface Toast {

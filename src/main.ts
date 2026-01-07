@@ -1,9 +1,10 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver, canAffordAnyPatch } from './game';
+import { buyPatch, calculateScore, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, getOvertakeDistance, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver, canAffordAnyPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref } from './storage';
+import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchAction, type SkipAction, type LeatherPatchAction } from './history';
 
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
@@ -18,13 +19,44 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: better leather patch visibility
 // TODO: congratulate player on 7x7 dorogo bogato
 // TODO: audio and haptic feedback
-// TODO: replay system to show full game video from the start
-// TODO:   - Add optional 1-step undo for the last confirmed purchase/placement (digital convenience, great
-//    for touch misplays).
-// TODO: share replay to unlock some unique color
 // TODO: patch placement animation
 // TODO: total game time
 // TODO: optional timer per turn
+
+// ============================================================================
+// TURN HISTORY / REPLAY / UNDO SYSTEM
+// ============================================================================
+// The turn tracing system is implemented in history.ts and stats.ts.
+// Game actions are recorded during play and stats are displayed at game end.
+//
+// DEFERRED FEATURES:
+//
+// TODO: Undo feature
+//   - Single-step undo that restores the entire turn (buy/skip + triggered leather patches)
+//   - Store a TurnSnapshot (deep clone of game state) before each turn starts
+//   - On undo: restore from snapshot, truncate actions array, clear snapshot
+//   - UI: Add "Undo" button on game screen (visible only when undo is available)
+//   - Clear undo availability when turn changes to a different player
+//
+// TODO: Replay system
+//   - Playback recorded games step-by-step for screen recording/sharing
+//   - Add new screen 'replay' with playback controls (play/pause, step forward/back, speed)
+//   - ReplayState: { history, currentActionIndex, gameState, isPlaying, playbackSpeed }
+//   - initReplay(history): Initialize replay from a GameHistory
+//   - stepForward(): Execute next action, increment index
+//   - stepBackward(): Re-initialize game and replay up to currentIndex - 1
+//   - Render: Reuse existing board rendering with replay controls overlay
+//
+// TODO: localStorage persistence
+//   - Store completed game histories in localStorage (last N games)
+//   - Add "Recent Games" section to setup screen to view past replays
+//   - Auto-save in-progress game history for recovery on page reload
+//
+// TODO: Clipboard export
+//   - Add "Copy Replay" button on game end screen
+//   - Compact JSON format: { v, p (patchOrder), n (names), f (firstPlayer), b (boardSize), a (actions) }
+//   - Use navigator.clipboard.writeText() to copy to clipboard
+// ============================================================================
 
 
 // Check for admin mode via query parameter
@@ -50,6 +82,7 @@ const state: AppState = {
   autoSkipEnabled: loadAutoSkipPref(),
   toasts: [],
   faceToFaceMode: loadFaceToFaceModePref(),
+  historyManager: null,
 };
 
 // Toast functions
@@ -95,7 +128,14 @@ export function toggleFaceToFaceMode(): void {
 }
 
 export function startGame(): void {
-  state.gameState = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
+  const { state: gameState, seed } = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
+  state.gameState = gameState;
+  state.historyManager = createHistoryManager(
+    seed,
+    state.playerNames,
+    state.firstPlayerIndex,
+    state.selectedBoardSize
+  );
   state.screen = 'game';
   checkGameEnd();  // Handle auto-skip if player can't afford anything
 }
@@ -191,7 +231,23 @@ export function skip(): void {
     }
 
     state.confirmingSkip = false;
+
+    // Record action before state changes
+    const playerIndex = getCurrentPlayerIndex(state.gameState);
+    const spacesSkipped = getOvertakeDistance(state.gameState);
+
     const result = skipAhead(state.gameState);
+
+    // Record skip action
+    if (state.historyManager) {
+      const action: SkipAction = {
+        type: 'skip',
+        playerIndex,
+        spacesSkipped,
+      };
+      recordAction(state.historyManager, action);
+    }
+
     if (result.crossedLeatherPositions.length > 0) {
       state.pendingLeatherPatches = result.crossedLeatherPositions;
       processNextLeatherPatch();
@@ -234,6 +290,12 @@ export function confirmPlacement(): void {
     const playerIdx = getCurrentPlayerIndex(state.gameState);
     if (state.placingLeatherPatch) {
       // Placing a leather patch (free, no market removal)
+      // Find the track position for this leather patch
+      const leatherPatch = state.gameState.leatherPatches.find(
+        lp => lp.patchId === state.placingLeatherPatch!.id
+      );
+      const trackPosition = leatherPatch?.position ?? 0;
+
       const success = placeLeatherPatch(
         state.gameState,
         state.placingLeatherPatch,
@@ -243,6 +305,22 @@ export function confirmPlacement(): void {
         state.placementState.reflected
       );
       if (success) {
+        // Record leather patch action
+        if (state.historyManager) {
+          const action: LeatherPatchAction = {
+            type: 'leatherPatch',
+            playerIndex: playerIdx,
+            trackPosition,
+            placement: {
+              x: state.placementState.x,
+              y: state.placementState.y,
+              rotation: state.placementState.rotation,
+              reflected: state.placementState.reflected,
+            },
+          };
+          recordAction(state.historyManager, action);
+        }
+
         // Check for 7x7 bonus after placing patch
         check7x7Bonus(state.gameState, playerIdx);
         state.placementState = null;
@@ -253,6 +331,10 @@ export function confirmPlacement(): void {
       }
     } else {
       // Regular market patch purchase
+      const patches = getAvailablePatches(state.gameState);
+      const patch = patches[state.placementState.patchIndex];
+      const patchId = patch?.id ?? 0;
+
       const result = buyPatch(
         state.gameState,
         state.placementState.patchIndex,
@@ -262,6 +344,23 @@ export function confirmPlacement(): void {
         state.placementState.reflected
       );
       if (result.success) {
+        // Record buy patch action
+        if (state.historyManager) {
+          const action: BuyPatchAction = {
+            type: 'buyPatch',
+            playerIndex: playerIdx,
+            patchIndex: state.placementState.patchIndex,
+            patchId,
+            placement: {
+              x: state.placementState.x,
+              y: state.placementState.y,
+              rotation: state.placementState.rotation,
+              reflected: state.placementState.reflected,
+            },
+          };
+          recordAction(state.historyManager, action);
+        }
+
         // Check for 7x7 bonus after placing patch
         check7x7Bonus(state.gameState, playerIdx);
         state.placementState = null;
@@ -323,6 +422,7 @@ export function playAgain(): void {
   state.placementState = null;
   state.pendingLeatherPatches = [];
   state.placingLeatherPatch = null;
+  state.historyManager = null;
   state.screen = 'setup';
 }
 
@@ -549,6 +649,14 @@ function checkGameEnd(): void {
   if (!state.gameState) return;
 
   if (isGameOver(state.gameState)) {
+    // Finalize history with final scores
+    if (state.historyManager) {
+      const scores: [number, number] = [
+        calculateScore(state.gameState.players[0]),
+        calculateScore(state.gameState.players[1]),
+      ];
+      finalizeHistory(state.historyManager, scores);
+    }
     state.screen = 'gameEnd';
     return;
   }
@@ -558,11 +666,25 @@ function checkGameEnd(): void {
          state.gameState &&
          !isGameOver(state.gameState) &&
          !canAffordAnyPatch(state.gameState)) {
+    // Record action before state changes
+    const playerIndex = getCurrentPlayerIndex(state.gameState);
+    const spacesSkipped = getOvertakeDistance(state.gameState);
+
     // Show toast for who is being skipped
-    const skippedPlayer = state.gameState.players[getCurrentPlayerIndex(state.gameState)];
+    const skippedPlayer = state.gameState.players[playerIndex];
     showToast(`Auto-skipped ${skippedPlayer.name}`);
 
     const result = skipAhead(state.gameState);
+
+    // Record skip action
+    if (state.historyManager) {
+      const action: SkipAction = {
+        type: 'skip',
+        playerIndex,
+        spacesSkipped,
+      };
+      recordAction(state.historyManager, action);
+    }
 
     if (result.crossedLeatherPositions.length > 0) {
       state.pendingLeatherPatches = result.crossedLeatherPositions;
@@ -573,6 +695,14 @@ function checkGameEnd(): void {
 
   // Check for game end after auto-skips
   if (state.gameState && isGameOver(state.gameState)) {
+    // Finalize history with final scores
+    if (state.historyManager) {
+      const scores: [number, number] = [
+        calculateScore(state.gameState.players[0]),
+        calculateScore(state.gameState.players[1]),
+      ];
+      finalizeHistory(state.historyManager, scores);
+    }
     state.screen = 'gameEnd';
     return;
   }

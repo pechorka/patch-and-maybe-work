@@ -2,6 +2,7 @@ import type { BoardSize, GameState, LeatherPatchOnTrack, Patch, Player, Shape } 
 import { createLeatherPatch, getLeatherPatchPositions, PATCH_DEFINITIONS } from './patches';
 import { getOpponentIndex } from './player-utils';
 import { getTransformedShape } from './shape-utils';
+import { generateSeed, shuffleWithSeed, type GameSeed } from './history';
 
 export interface MoveResult {
   crossedLeatherPositions: number[];
@@ -9,12 +10,24 @@ export interface MoveResult {
 
 const STARTING_BUTTONS = 5;
 
-export function createGameState(boardSize: BoardSize, playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+export interface CreateGameResult {
+  state: GameState;
+  seed: GameSeed;
+}
+
+export function createGameState(
+  boardSize: BoardSize,
+  playerNames: [string, string],
+  firstPlayerIndex: 0 | 1 = 0,
+  seed?: GameSeed
+): CreateGameResult {
   const timeTrackLength = getTimeTrackLength(boardSize);
   const incomePositions = getIncomePositions(boardSize);
   const leatherPositions = getLeatherPatchPositions(boardSize);
 
-  const patches = shuffleArray([...PATCH_DEFINITIONS]);
+  // Use provided seed or generate a new one
+  const actualSeed = seed ?? generateSeed();
+  const patches = shuffleWithSeed([...PATCH_DEFINITIONS], actualSeed);
 
   // Initialize leather patches on time track
   const leatherPatches: LeatherPatchOnTrack[] = leatherPositions.map((pos, idx) => ({
@@ -24,18 +37,21 @@ export function createGameState(boardSize: BoardSize, playerNames: [string, stri
   }));
 
   return {
-    boardSize,
-    players: [
-      createPlayer(playerNames[0], boardSize),
-      createPlayer(playerNames[1], boardSize),
-    ],
-    patches,
-    marketPosition: 0,
-    timeTrackLength,
-    incomePositions,
-    leatherPatches,
-    firstPlayerIndex,
-    bonus7x7Claimed: false,
+    state: {
+      boardSize,
+      players: [
+        createPlayer(playerNames[0], boardSize),
+        createPlayer(playerNames[1], boardSize),
+      ],
+      patches,
+      marketPosition: 0,
+      timeTrackLength,
+      incomePositions,
+      leatherPatches,
+      firstPlayerIndex,
+      bonus7x7Claimed: false,
+    },
+    seed: actualSeed,
   };
 }
 
@@ -87,14 +103,6 @@ function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveR
   return { crossedLeatherPositions };
 }
 
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
 
 export function getCurrentPlayerIndex(state: GameState): 0 | 1 {
   // Player furthest behind goes next
@@ -380,7 +388,7 @@ export function placeLeatherPatch(
 
 // Test helper functions for admin test screen
 export function createTestGameWith1Patch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   // Keep only 1 patch in the market
   state.patches = state.patches.slice(0, 1);
   state.marketPosition = 0;
@@ -388,7 +396,7 @@ export function createTestGameWith1Patch(playerNames: [string, string], firstPla
 }
 
 export function createTestGameWith2Patches(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   // Keep only 2 patches in the market
   state.patches = state.patches.slice(0, 2);
   state.marketPosition = 0;
@@ -396,7 +404,7 @@ export function createTestGameWith2Patches(playerNames: [string, string], firstP
 }
 
 export function createTestGameNearIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   const currentPlayer = state.players[firstPlayerIndex];
   const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
@@ -411,7 +419,7 @@ export function createTestGameNearIncome(playerNames: [string, string], firstPla
 }
 
 export function createTestGameInfiniteMoney(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   const currentPlayer = state.players[firstPlayerIndex];
   const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
@@ -426,7 +434,7 @@ export function createTestGameInfiniteMoney(playerNames: [string, string], first
 }
 
 export function createTestGameNearLeatherPatch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   const currentPlayer = state.players[firstPlayerIndex];
   const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
@@ -442,7 +450,7 @@ export function createTestGameNearLeatherPatch(playerNames: [string, string], fi
 }
 
 export function createTestGameNearLastIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   const currentPlayer = state.players[firstPlayerIndex];
   const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
@@ -457,7 +465,7 @@ export function createTestGameNearLastIncome(playerNames: [string, string], firs
 }
 
 export function createTestGameOver(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const { state } = createGameState(9, playerNames, firstPlayerIndex);
   const player1 = state.players[0];
   const player2 = state.players[1];
 
