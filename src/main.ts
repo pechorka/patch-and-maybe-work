@@ -18,6 +18,7 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // TODO: patch placement animation
 // TODO: total game time
 // TODO: optional timer per turn
+// TODO: add game rules
 
 // ============================================================================
 // TURN HISTORY / REPLAY / UNDO SYSTEM

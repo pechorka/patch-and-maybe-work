@@ -76,11 +76,18 @@ export function renderBoard(
     const bonusY = y + player.bonus7x7Area.y * cellSize;
     const bonusSize = 7 * cellSize;
 
+    // Add glow effect
+    ctx.shadowColor = COLORS.bonus7x7;
+    ctx.shadowBlur = cellSize * 0.4;
+
     ctx.strokeStyle = COLORS.bonus7x7;
     // Stroke width as percentage of cell size (5%)
     ctx.lineWidth = Math.max(2, cellSize * 0.05);
     ctx.strokeRect(bonusX, bonusY, bonusSize, bonusSize);
     ctx.lineWidth = 1;
+
+    // Reset shadow
+    ctx.shadowBlur = 0;
   }
 
   // Draw ghost patch if provided
