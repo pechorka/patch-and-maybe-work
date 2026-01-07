@@ -741,7 +741,7 @@ function renderPlacementAnimation(rctx: RenderContext, state: AppState): void {
   // Calculate animation progress
   const elapsed = Date.now() - anim.startTime;
   const progress = Math.min(1, elapsed / PLACEMENT_ANIMATION_DURATION);
-  const animParams = calculateAnimationParams(anim.type, progress);
+  const animParams = calculateAnimationParams(progress);
 
   const isLeatherPatch = anim.patchId < 0;
 

@@ -4,7 +4,7 @@ import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, createRenderContext, getPlacementBoardLayout, render, resizeRenderContext, screenToCellCoords } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref, loadAnimationsDisabledPref, saveAnimationsDisabledPref } from './storage';
-import { getRandomAnimationType, PLACEMENT_ANIMATION_DURATION } from './animations';
+import { PLACEMENT_ANIMATION_DURATION } from './animations';
 import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchAction, type SkipAction, type LeatherPatchAction } from './history';
 
 // Render state (managed outside AppState since it's renderer-specific)
@@ -336,7 +336,6 @@ export function confirmPlacement(): void {
         // Start animation if enabled
         if (state.placementAnimationsEnabled) {
           state.placementAnimation = {
-            type: getRandomAnimationType(),
             startTime: Date.now(),
             patchId: state.placingLeatherPatch.id,
             placement: {
@@ -396,7 +395,6 @@ export function confirmPlacement(): void {
         // Start animation if enabled
         if (state.placementAnimationsEnabled) {
           state.placementAnimation = {
-            type: getRandomAnimationType(),
             startTime: Date.now(),
             patchId,
             placement: {

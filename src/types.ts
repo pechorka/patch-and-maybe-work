@@ -60,10 +60,7 @@ export interface DragState {
   startCellY: number;        // Original placementState.y when drag started
 }
 
-export type PlacementAnimationType = 'pop' | 'glow' | 'slideIn';
-
 export interface PlacementAnimationState {
-  type: PlacementAnimationType;
   startTime: number;
   patchId: number;
   placement: { x: number; y: number; rotation: number; reflected: boolean };
