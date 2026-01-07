@@ -392,50 +392,73 @@ export function createTestGameWith2Patches(playerNames: [string, string], firstP
 
 export function createTestGameNear7x7(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const state = createGameState(9, playerNames, firstPlayerIndex);
-  const player = state.players[0];
+  const player = state.players[firstPlayerIndex];
 
-  // Fill almost a 7x7 area (48 cells filled, need 1 more for 7x7)
-  // Fill first 6 rows completely and first 6 cells of row 7
+  // Fill almost a 7x7 area (47 cells filled, leaving a 2-cell gap)
+  // Fill columns 0-5 completely (rows 0-6), then column 6 rows 0-4
+  // This leaves (5,6) and (6,6) empty - a 2-cell vertical gap that can be filled with a [[1],[1]] patch
+
+  // Fill columns 0-5, rows 0-6 (42 cells)
   for (let y = 0; y < 7; y++) {
-    for (let x = 0; x < 7; x++) {
-      if (!(y === 6 && x === 6)) { // Leave one cell empty at (6,6)
-        player.board[y][x] = 999; // Use a special ID for test patches
-      }
+    for (let x = 0; x < 6; x++) {
+      player.board[y][x] = 999; // Use a special ID for manually filled cells
     }
   }
+
+  // Fill column 6, rows 0-4 (5 more cells, total 47)
+  for (let y = 0; y < 5; y++) {
+    player.board[y][6] = 999;
+  }
+
+  // Leave (5,6) and (6,6) empty for a 1x2 patch
+  // Give player lots of buttons to afford any patch
+  player.buttons = 100;
 
   return state;
 }
 
 export function createTestGameNearIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const state = createGameState(9, playerNames, firstPlayerIndex);
-  const player = state.players[0];
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
-  // Position player just before first income checkpoint (position 5)
-  player.position = 4;
-  player.income = 3; // Give them some income to collect
+  // Position current player just before first income checkpoint (position 5)
+  currentPlayer.position = 4;
+  currentPlayer.income = 3; // Give them some income to collect
+
+  // Put opponent ahead so current player stays current
+  opponent.position = 10;
 
   return state;
 }
 
 export function createTestGameInfiniteMoney(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const state = createGameState(9, playerNames, firstPlayerIndex);
-  const player = state.players[0];
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
-  // Give player a huge amount of buttons
-  player.buttons = 99999;
+  // Give current player a huge amount of buttons
+  currentPlayer.buttons = 99999;
+
+  // Keep both at position 0, so firstPlayerIndex determines who goes first
+  currentPlayer.position = 0;
+  opponent.position = 0;
 
   return state;
 }
 
 export function createTestGameNearLeatherPatch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const state = createGameState(9, playerNames, firstPlayerIndex);
-  const player = state.players[0];
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
 
-  // Get first leather patch position and position player just before it
+  // Get first leather patch position and position current player just before it
   const firstLeatherPos = state.leatherPatches[0]?.position ?? 8;
-  player.position = Math.max(0, firstLeatherPos - 1);
-  player.buttons = 50; // Give enough buttons to buy patches
+  currentPlayer.position = Math.max(0, firstLeatherPos - 1);
+  currentPlayer.buttons = 50; // Give enough buttons to buy patches
+
+  // Put opponent ahead so current player stays current
+  opponent.position = firstLeatherPos + 5;
 
   return state;
 }
