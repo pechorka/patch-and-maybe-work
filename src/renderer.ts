@@ -3,7 +3,7 @@ import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerInd
 import {
   editName, startGame, selectFirstPlayer, toggleAutoSkip, toggleFaceToFaceMode,
   togglePlacementAnimations,
-  skip, openMapView,
+  skip, openMapView, undo, canUndo,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd, setGameEndTab,
   closeMapView, trackPosition,
@@ -549,6 +549,31 @@ function renderGameScreen(state: AppState): void {
   const mapBtnX = skipBtnX;
   const mapBtnY = skipBtnY - mapBtnHeight - mapBtnGap;
   const mapBtnWidth = skipBtnWidth;
+
+  // Undo button (above map button, only show if undo is available)
+  const undoAvailable = canUndo();
+  if (undoAvailable) {
+    const undoBtnHeight = scale(minDim, LAYOUT.buttonHeight.small);
+    const undoBtnGap = scale(minDim, LAYOUT.gap.medium);
+    const undoBtnX = mapBtnX;
+    const undoBtnY = mapBtnY - undoBtnHeight - undoBtnGap;
+    const undoBtnWidth = mapBtnWidth;
+
+    ctx.fillStyle = '#9b59b6';  // Purple color for undo
+    ctx.fillRect(undoBtnX, undoBtnY, undoBtnWidth, undoBtnHeight);
+
+    ctx.fillStyle = COLORS.text;
+    ctx.font = font(minDim, 'info', 'bold');
+    ctx.textAlign = 'center';
+    ctx.fillText('UNDO', undoBtnX + undoBtnWidth / 2, undoBtnY + undoBtnHeight / 2 + scale(minDim, 0.00625));
+
+    buttons.push({
+      x: undoBtnX, y: undoBtnY, width: undoBtnWidth, height: undoBtnHeight,
+      label: 'Undo',
+      action: undo,
+      type: 'standard',
+    });
+  }
 
   ctx.fillStyle = COLORS.panel;
   ctx.fillRect(mapBtnX, mapBtnY, mapBtnWidth, mapBtnHeight);
