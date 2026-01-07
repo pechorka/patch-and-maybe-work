@@ -100,7 +100,8 @@ function resize(): void {
   canvas.style.width = width + 'px';
   canvas.style.height = height + 'px';
 
-  ctx.scale(dpr, dpr);
+  // Reset transform and apply DPR scale
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 export function render(state: AppState): void {
