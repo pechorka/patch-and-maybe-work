@@ -88,7 +88,7 @@ export interface AppState {
   previewingOpponentBoard: boolean;  // True when holding opponent's panel to preview their board
   confirmingSkip: boolean;  // True when user tapped skip once and needs to confirm
   autoSkipEnabled: boolean;  // True when auto-skip is enabled for players who can't afford any patches
-  toast: Toast | null;  // Current toast notification to display
+  toasts: Toast[];  // Active toast notifications
 }
 
 export interface Toast {

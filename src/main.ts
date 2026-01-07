@@ -53,23 +53,24 @@ const state: AppState = {
   previewingOpponentBoard: false,
   confirmingSkip: false,
   autoSkipEnabled: loadAutoSkipPref(),
-  toast: null,
+  toasts: [],
 };
 
 // Toast functions
 const TOAST_DURATION_MS = 2000;
 
 export function showToast(message: string): void {
-  state.toast = {
+  state.toasts.push({
     message,
     createdAt: Date.now(),
-  };
+  });
 }
 
-function clearToastIfExpired(): void {
-  if (state.toast && Date.now() - state.toast.createdAt > TOAST_DURATION_MS) {
-    state.toast = null;
-  }
+function clearExpiredToasts(): void {
+  const now = Date.now();
+  state.toasts = state.toasts.filter(
+    toast => now - toast.createdAt <= TOAST_DURATION_MS
+  );
 }
 
 // Setup screen actions
@@ -583,7 +584,7 @@ function checkGameEnd(): void {
 }
 
 function gameLoop(): void {
-  clearToastIfExpired();
+  clearExpiredToasts();
   render(state);
   requestAnimationFrame(gameLoop);
 }

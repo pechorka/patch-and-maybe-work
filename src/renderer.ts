@@ -1,4 +1,4 @@
-import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape } from './types';
+import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape, Toast } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
   editName, startGame, selectFirstPlayer, toggleAutoSkip,
@@ -134,8 +134,8 @@ export function render(state: AppState): void {
   }
 
   // Render toast overlay (on top of everything)
-  if (state.toast) {
-    renderToast(state.toast.message);
+  if (state.toasts.length > 0) {
+    renderToasts(state.toasts);
   }
 }
 
@@ -1144,10 +1144,31 @@ function renderPatchInRing(
   ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 8);
 }
 
-function renderToast(message: string): void {
+function renderToasts(toasts: Toast[]): void {
   const centerX = width / 2;
-  const centerY = height / 2;
+  const toastHeight = 50;
+  const toastGap = 10;
+  const totalHeight = toasts.length * toastHeight + (toasts.length - 1) * toastGap;
+  const startY = height / 2 - totalHeight / 2 + toastHeight / 2;
 
+  toasts.forEach((toast, index) => {
+    const y = startY + index * (toastHeight + toastGap);
+    const age = Date.now() - toast.createdAt;
+    const opacity = calculateToastOpacity(age);
+    renderSingleToast(toast.message, centerX, y, opacity);
+  });
+}
+
+function calculateToastOpacity(age: number): number {
+  const FADE_START = 1500;  // Start fading at 1.5s
+  const FADE_DURATION = 500;  // Fade over 0.5s
+
+  if (age < FADE_START) return 1;
+  const fadeProgress = (age - FADE_START) / FADE_DURATION;
+  return Math.max(0, 1 - fadeProgress);
+}
+
+function renderSingleToast(message: string, centerX: number, centerY: number, opacity: number): void {
   // Measure text to size the background
   ctx.font = 'bold 18px sans-serif';
   const textMetrics = ctx.measureText(message);
@@ -1157,7 +1178,7 @@ function renderToast(message: string): void {
   const boxHeight = 50;
 
   // Semi-transparent dark background with rounded corners
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.8 * opacity})`;
   const boxX = centerX - boxWidth / 2;
   const boxY = centerY - boxHeight / 2;
   const radius = 10;
@@ -1175,8 +1196,8 @@ function renderToast(message: string): void {
   ctx.closePath();
   ctx.fill();
 
-  // White text
-  ctx.fillStyle = COLORS.text;
+  // White text with opacity
+  ctx.fillStyle = `rgba(236, 240, 241, ${opacity})`;
   ctx.textAlign = 'center';
   ctx.fillText(message, centerX, centerY + 6);
 }
