@@ -1,0 +1,177 @@
+import type { ChartData, TimeSeriesPoint } from '../stats';
+import { COLORS } from '../colors';
+
+interface LineChartOptions {
+  title: string;
+  yAxisLabel: string;
+  getValue: (point: TimeSeriesPoint) => [number, number];
+  playerNames: [string, string];
+}
+
+/**
+ * Render a line chart on the canvas.
+ */
+export function renderLineChart(
+  ctx: CanvasRenderingContext2D,
+  data: TimeSeriesPoint[],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  options: LineChartOptions
+): void {
+  if (data.length === 0) return;
+
+  const padding = { top: 25, right: 15, bottom: 30, left: 45 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const chartX = x + padding.left;
+  const chartY = y + padding.top;
+
+  // Calculate data bounds
+  const values = data.flatMap(p => options.getValue(p));
+  const maxVal = Math.max(...values, 1); // At least 1 to avoid division by zero
+  const maxTurn = data.length - 1;
+
+  // Draw chart title
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(options.title, x + width / 2, y + 16);
+
+  // Draw chart background
+  ctx.fillStyle = COLORS.boardBg;
+  ctx.fillRect(chartX, chartY, chartWidth, chartHeight);
+
+  // Draw grid lines
+  ctx.strokeStyle = COLORS.boardGrid;
+  ctx.lineWidth = 1;
+  const gridLines = 4;
+  for (let i = 0; i <= gridLines; i++) {
+    const gy = chartY + (chartHeight * i) / gridLines;
+    ctx.beginPath();
+    ctx.moveTo(chartX, gy);
+    ctx.lineTo(chartX + chartWidth, gy);
+    ctx.stroke();
+
+    // Y-axis labels
+    const value = Math.round(maxVal - (maxVal * i) / gridLines);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(String(value), chartX - 5, gy + 4);
+  }
+
+  // Draw X-axis label (turn numbers)
+  ctx.fillStyle = COLORS.text;
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  const xLabels = Math.min(6, maxTurn + 1);
+  for (let i = 0; i < xLabels; i++) {
+    const turn = Math.round((maxTurn * i) / (xLabels - 1 || 1));
+    const lx = chartX + (chartWidth * turn) / (maxTurn || 1);
+    ctx.fillText(String(turn), lx, chartY + chartHeight + 15);
+  }
+
+  // Draw lines for each player
+  const colors = [COLORS.player1, COLORS.player2];
+
+  for (let playerIdx = 0; playerIdx < 2; playerIdx++) {
+    const color = colors[playerIdx];
+
+    // Draw line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    for (let i = 0; i < data.length; i++) {
+      const point = data[i];
+      const value = options.getValue(point)[playerIdx];
+      const px = chartX + (chartWidth * point.turn) / (maxTurn || 1);
+      const py = chartY + chartHeight - (chartHeight * value) / (maxVal || 1);
+
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // Draw points
+    ctx.fillStyle = color;
+    for (let i = 0; i < data.length; i++) {
+      const point = data[i];
+      const value = options.getValue(point)[playerIdx];
+      const px = chartX + (chartWidth * point.turn) / (maxTurn || 1);
+      const py = chartY + chartHeight - (chartHeight * value) / (maxVal || 1);
+
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Draw legend
+  const legendY = y + height - 8;
+  const legendX1 = x + width / 2 - 80;
+  const legendX2 = x + width / 2 + 20;
+
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+
+  // Player 1
+  ctx.fillStyle = COLORS.player1;
+  ctx.beginPath();
+  ctx.arc(legendX1, legendY, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText(options.playerNames[0], legendX1 + 10, legendY + 4);
+
+  // Player 2
+  ctx.fillStyle = COLORS.player2;
+  ctx.beginPath();
+  ctx.arc(legendX2, legendY, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText(options.playerNames[1], legendX2 + 10, legendY + 4);
+}
+
+/**
+ * Render all charts for the game end screen.
+ */
+export function renderCharts(
+  ctx: CanvasRenderingContext2D,
+  chartData: ChartData,
+  x: number,
+  y: number,
+  width: number,
+  availableHeight: number
+): void {
+  const chartHeight = Math.min(180, (availableHeight - 40) / 3);
+  const gap = 15;
+
+  // Buttons chart
+  renderLineChart(ctx, chartData.series, x, y, width, chartHeight, {
+    title: 'Buttons Over Time',
+    yAxisLabel: 'Buttons',
+    getValue: (p) => p.buttons,
+    playerNames: chartData.playerNames,
+  });
+
+  // Income chart
+  renderLineChart(ctx, chartData.series, x, y + chartHeight + gap, width, chartHeight, {
+    title: 'Income Over Time',
+    yAxisLabel: 'Income',
+    getValue: (p) => p.income,
+    playerNames: chartData.playerNames,
+  });
+
+  // Cells filled chart
+  renderLineChart(ctx, chartData.series, x, y + 2 * (chartHeight + gap), width, chartHeight, {
+    title: 'Board Coverage Over Time',
+    yAxisLabel: 'Cells',
+    getValue: (p) => p.cellsFilled,
+    playerNames: chartData.playerNames,
+  });
+}

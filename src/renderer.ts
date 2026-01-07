@@ -4,7 +4,7 @@ import {
   editName, startGame, selectFirstPlayer, toggleAutoSkip, toggleFaceToFaceMode,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
-  playAgain, previewBoard, backToGameEnd,
+  playAgain, previewBoard, backToGameEnd, setGameEndTab,
   closeMapView, trackPosition,
   getIsAdminMode, openAdminTestScreen, backToSetup,
   loadTestGame1Patch, loadTestGame2Patches,
@@ -15,7 +15,8 @@ import { getTransformedShape } from './shape-utils';
 import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor, drawPlayerGradient } from './colors';
 import { getOpponentIndex } from './player-utils';
 import { renderBoard as renderBoardNew } from './renderer/board-renderer';
-import { calculateStats } from './stats';
+import { calculateStats, calculateChartData } from './stats';
+import { renderCharts } from './renderer/chart-renderer';
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
@@ -814,39 +815,33 @@ function renderGameEndScreen(state: AppState): void {
 
   // Title
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 48px sans-serif';
+  ctx.font = 'bold 36px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', centerX, height * 0.12);
+  ctx.fillText('GAME OVER', centerX, height * 0.08);
 
+  // Player score panels (compact)
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
     const score = calculateScore(player);
     const isWinner = winner === i;
 
-    const yPos = height * 0.24 + i * 100;
+    const yPos = height * 0.15 + i * 70;
     const panelX = centerX - 150;
-    const panelY = yPos - 25;
+    const panelY = yPos - 20;
     const panelWidth = 300;
-    const panelHeight = 90;
+    const panelHeight = 60;
 
     ctx.fillStyle = isWinner ? COLORS.panelActive : COLORS.panel;
     ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = isWinner ? 'bold 22px sans-serif' : '22px sans-serif';
+    ctx.font = isWinner ? 'bold 18px sans-serif' : '18px sans-serif';
     ctx.fillText(`${player.name}: ${score} points`, centerX, yPos);
 
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = COLORS.text;
-
-    const emptySpaces = countEmptySpaces(player.board);
-    ctx.fillText(`(${player.buttons} buttons - ${emptySpaces * 2} penalty)`, centerX, yPos + 24);
-
     ctx.font = '12px sans-serif';
-    ctx.fillStyle = COLORS.text;
-    ctx.fillText('Tap to preview board', centerX, yPos + 45);
+    const emptySpaces = countEmptySpaces(player.board);
+    ctx.fillText(`(${player.buttons} btns - ${emptySpaces * 2} penalty) · Tap to preview`, centerX, yPos + 20);
 
-    // Make panel clickable to preview board
     const playerIdx = i;
     buttons.push({
       x: panelX, y: panelY, width: panelWidth, height: panelHeight,
@@ -856,60 +851,108 @@ function renderGameEndScreen(state: AppState): void {
     });
   }
 
-  let statsY = height * 0.50;
-
+  // Tie message
+  let tabY = height * 0.32;
   if (winner === 'tie') {
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText("It's a tie!", centerX, statsY);
-    statsY += 30;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText("It's a tie!", centerX, tabY - 10);
+    tabY += 15;
   }
 
-  // Stats section
-  if (state.historyManager) {
-    const stats = calculateStats(state.historyManager.history);
+  // Tab buttons
+  const tabWidth = 120;
+  const tabHeight = 40;
+  const tabGap = 10;
+  const tabsWidth = tabWidth * 2 + tabGap;
+  const tabsX = centerX - tabsWidth / 2;
+
+  const tabs: Array<{ label: string; value: 'summary' | 'charts' }> = [
+    { label: 'Summary', value: 'summary' },
+    { label: 'Charts', value: 'charts' },
+  ];
+
+  tabs.forEach((tab, i) => {
+    const tx = tabsX + i * (tabWidth + tabGap);
+    const isActive = state.gameEndTab === tab.value;
+
+    ctx.fillStyle = isActive ? COLORS.panelActive : COLORS.panel;
+    ctx.fillRect(tx, tabY, tabWidth, tabHeight);
 
     ctx.fillStyle = COLORS.text;
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('Game Stats', centerX, statsY);
+    ctx.font = isActive ? 'bold 16px sans-serif' : '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(tab.label, tx + tabWidth / 2, tabY + tabHeight / 2 + 5);
 
-    ctx.font = '14px sans-serif';
-    const lineHeight = 20;
-    let y = statsY + lineHeight;
+    buttons.push({
+      x: tx, y: tabY, width: tabWidth, height: tabHeight,
+      label: tab.label,
+      action: () => setGameEndTab(tab.value),
+      type: 'standard',
+    });
+  });
 
-    ctx.fillText(`Total turns: ${stats.totalTurns}`, centerX, y);
-    y += lineHeight;
+  // Tab content area
+  const contentY = tabY + tabHeight + 15;
+  const contentHeight = height * 0.82 - contentY - 80; // Leave room for play again button
 
-    ctx.fillText(
-      `Patches: ${game.players[0].name} ${stats.patchesBought[0]} | ${game.players[1].name} ${stats.patchesBought[1]}`,
-      centerX, y
-    );
-    y += lineHeight;
+  if (state.gameEndTab === 'summary') {
+    // Summary stats
+    if (state.historyManager) {
+      const stats = calculateStats(state.historyManager.history);
 
-    ctx.fillText(
-      `Skips: ${game.players[0].name} ${stats.skips[0]} (+${stats.buttonsFromSkips[0]}) | ${game.players[1].name} ${stats.skips[1]} (+${stats.buttonsFromSkips[1]})`,
-      centerX, y
-    );
-    y += lineHeight;
+      ctx.fillStyle = COLORS.text;
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game Stats', centerX, contentY + 20);
 
-    ctx.fillText(
-      `Leather: ${game.players[0].name} ${stats.leatherPatches[0]} | ${game.players[1].name} ${stats.leatherPatches[1]}`,
-      centerX, y
-    );
+      ctx.font = '14px sans-serif';
+      const lineHeight = 22;
+      let y = contentY + 50;
+
+      ctx.fillText(`Total turns: ${stats.totalTurns}`, centerX, y);
+      y += lineHeight;
+
+      ctx.fillText(
+        `Patches: ${game.players[0].name} ${stats.patchesBought[0]} | ${game.players[1].name} ${stats.patchesBought[1]}`,
+        centerX, y
+      );
+      y += lineHeight;
+
+      ctx.fillText(
+        `Skips: ${game.players[0].name} ${stats.skips[0]} (+${stats.buttonsFromSkips[0]}) | ${game.players[1].name} ${stats.skips[1]} (+${stats.buttonsFromSkips[1]})`,
+        centerX, y
+      );
+      y += lineHeight;
+
+      ctx.fillText(
+        `Leather: ${game.players[0].name} ${stats.leatherPatches[0]} | ${game.players[1].name} ${stats.leatherPatches[1]}`,
+        centerX, y
+      );
+    }
+  } else {
+    // Charts tab
+    if (state.historyManager) {
+      const chartData = calculateChartData(state.historyManager.history);
+      const chartWidth = Math.min(width - 40, 400);
+      const chartX = centerX - chartWidth / 2;
+      renderCharts(ctx, chartData, chartX, contentY, chartWidth, contentHeight);
+    }
   }
 
   // Play again button
   const btnWidth = 200;
-  const btnHeight = 60;
+  const btnHeight = 50;
   const btnX = centerX - btnWidth / 2;
-  const btnY = height * 0.82;
+  const btnY = height - btnHeight - 20;
 
   ctx.fillStyle = COLORS.button;
   ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
 
   ctx.fillStyle = COLORS.text;
-  ctx.font = 'bold 24px sans-serif';
-  ctx.fillText('PLAY AGAIN', centerX, btnY + btnHeight / 2 + 8);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PLAY AGAIN', centerX, btnY + btnHeight / 2 + 7);
 
   buttons.push({
     x: btnX, y: btnY, width: btnWidth, height: btnHeight,

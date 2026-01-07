@@ -4,6 +4,8 @@ export type BoardSize = 9;
 
 export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview' | 'adminTest';
 
+export type GameEndTab = 'summary' | 'charts';
+
 export type Shape = (0 | 1)[][];
 
 export interface PatchVariant {
@@ -93,6 +95,7 @@ export interface AppState {
   toasts: Toast[];  // Active toast notifications
   faceToFaceMode: boolean;  // True when screen rotates 180° on player change for face-to-face play
   historyManager: HistoryManager | null;  // Turn history for stats/undo/replay
+  gameEndTab: GameEndTab;  // Active tab on game end screen
 }
 
 export interface Toast {

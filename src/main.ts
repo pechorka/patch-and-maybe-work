@@ -83,6 +83,7 @@ const state: AppState = {
   toasts: [],
   faceToFaceMode: loadFaceToFaceModePref(),
   historyManager: null,
+  gameEndTab: 'summary',
 };
 
 // Toast functions
@@ -423,7 +424,12 @@ export function playAgain(): void {
   state.pendingLeatherPatches = [];
   state.placingLeatherPatch = null;
   state.historyManager = null;
+  state.gameEndTab = 'summary';
   state.screen = 'setup';
+}
+
+export function setGameEndTab(tab: 'summary' | 'charts'): void {
+  state.gameEndTab = tab;
 }
 
 export function previewBoard(playerIdx: number): void {
