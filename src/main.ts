@@ -516,10 +516,6 @@ export function trackPositionRelease(): void {
 }
 
 // Drag and drop functions for patch placement
-export function getAppState(): AppState {
-  return state;
-}
-
 export function isDragging(): boolean {
   return state.dragState !== null;
 }
@@ -806,7 +802,7 @@ function init(): void {
   }
 
   initRenderer(canvas);
-  initInput(canvas);
+  initInput(canvas, state);
   gameLoop();
 }
 

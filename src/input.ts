@@ -1,6 +1,6 @@
-import type { Button } from './types';
+import type { AppState, Button } from './types';
 import { buttons, getIsScreenRotated, getCanvasDimensions } from './renderer';
-import { endDrag, getAppState, isDragging, isInsidePlacedPatch, selectPatch, startDrag, startOpponentBoardPreview, stopOpponentBoardPreview, trackPositionRelease, updateDrag } from './main';
+import { endDrag, isDragging, isInsidePlacedPatch, selectPatch, startDrag, startOpponentBoardPreview, stopOpponentBoardPreview, trackPositionRelease, updateDrag } from './main';
 
 /**
  * Transform coordinates when screen is rotated 180°.
@@ -31,13 +31,13 @@ function getPointerCoords(e: MouseEvent | TouchEvent): { x: number; y: number } 
   return null;
 }
 
-export function initInput(canvas: HTMLCanvasElement): void {
+export function initInput(canvas: HTMLCanvasElement, state: AppState): void {
   canvas.addEventListener('click', handleClick);
   canvas.addEventListener('touchend', handleTouchEnd);
 
   // Track position press/release handling and drag
-  canvas.addEventListener('mousedown', handlePointerDown);
-  canvas.addEventListener('touchstart', handlePointerDown);
+  canvas.addEventListener('mousedown', (e) => handlePointerDown(e, state));
+  canvas.addEventListener('touchstart', (e) => handlePointerDown(e, state));
   canvas.addEventListener('mouseup', handleRelease);
   canvas.addEventListener('touchend', handleRelease);
 
@@ -60,12 +60,11 @@ function handleTouchEnd(e: TouchEvent): void {
   }
 }
 
-function handlePointerDown(e: MouseEvent | TouchEvent): void {
+function handlePointerDown(e: MouseEvent | TouchEvent, state: AppState): void {
   const rawCoords = getPointerCoords(e);
   if (!rawCoords) return;
 
   const { x, y } = transformCoords(rawCoords.x, rawCoords.y);
-  const state = getAppState();
 
   // On game screen, check for player panel and patch button presses
   if (state.screen === 'game') {
