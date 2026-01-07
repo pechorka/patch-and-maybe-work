@@ -88,6 +88,12 @@ export interface GameState {
   bonus7x7Claimed: boolean;  // True once any player has claimed the 7x7 bonus
 }
 
+export interface UndoSnapshot {
+  gameState: GameState;
+  playerIndex: 0 | 1;  // Player who made the move being undone
+  actionCount: number;  // Number of actions in history when snapshot was taken
+}
+
 export interface AppState {
   screen: Screen;
   gameState: GameState | null;
@@ -108,6 +114,7 @@ export interface AppState {
   gameEndTab: GameEndTab;  // Active tab on game end screen
   placementAnimationsEnabled: boolean;  // True when placement animations are enabled
   placementAnimation: PlacementAnimationState | null;  // Current placement animation in progress
+  undoSnapshot: UndoSnapshot | null;  // Snapshot for undo functionality
 }
 
 export interface Toast {

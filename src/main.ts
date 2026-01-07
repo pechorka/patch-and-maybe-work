@@ -1,4 +1,4 @@
-import type { AppState, Patch, Shape } from './types';
+import type { AppState, Patch, Shape, GameState, Player } from './types';
 import { buyPatch, calculateScore, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, getOvertakeDistance, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver, canAffordAnyPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
@@ -55,6 +55,47 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // ============================================================================
 
 
+// Deep clone game state for undo snapshots
+function deepCloneGameState(gameState: GameState): GameState {
+  return {
+    ...gameState,
+    players: gameState.players.map(player => ({
+      ...player,
+      board: player.board.map(row => [...row]),
+      placedPatches: player.placedPatches.map(pp => ({
+        ...pp,
+        patch: { ...pp.patch, shape: pp.patch.shape.map(row => [...row]) },
+      })),
+      bonus7x7Area: player.bonus7x7Area ? { ...player.bonus7x7Area } : null,
+    })) as [Player, Player],
+    patches: gameState.patches.map(p => ({
+      ...p,
+      shape: p.shape.map(row => [...row]),
+    })),
+    incomePositions: [...gameState.incomePositions],
+    leatherPatches: gameState.leatherPatches.map(lp => ({ ...lp })),
+  };
+}
+
+// Save snapshot before a player makes a move
+function saveUndoSnapshot(): void {
+  if (!state.gameState || !state.historyManager) return;
+
+  const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
+  state.undoSnapshot = {
+    gameState: deepCloneGameState(state.gameState),
+    playerIndex: currentPlayerIndex,
+    actionCount: state.historyManager.history.actions.length,
+  };
+}
+
+// Check if undo is available (snapshot exists and it's the same player's turn)
+export function canUndo(): boolean {
+  if (!state.undoSnapshot || !state.gameState) return false;
+  const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
+  return currentPlayerIndex === state.undoSnapshot.playerIndex;
+}
+
 // Check for admin mode via query parameter
 function isAdminMode(): boolean {
   const params = new URLSearchParams(window.location.search);
@@ -82,6 +123,7 @@ const state: AppState = {
   gameEndTab: 'summary',
   placementAnimationsEnabled: !loadAnimationsDisabledPref(),
   placementAnimation: null,
+  undoSnapshot: null,
 };
 
 // Toast functions
@@ -236,6 +278,9 @@ export function skip(): void {
 
     state.confirmingSkip = false;
 
+    // Save snapshot before making the move
+    saveUndoSnapshot();
+
     // Record action before state changes
     const playerIndex = getCurrentPlayerIndex(state.gameState);
     const spacesSkipped = getOvertakeDistance(state.gameState);
@@ -259,6 +304,30 @@ export function skip(): void {
       checkGameEnd();
     }
   }
+}
+
+export function undo(): void {
+  if (!canUndo() || !state.undoSnapshot || !state.historyManager) {
+    return;
+  }
+
+  // Restore game state from snapshot
+  state.gameState = deepCloneGameState(state.undoSnapshot.gameState);
+
+  // Truncate history actions to the snapshot point
+  state.historyManager.history.actions = state.historyManager.history.actions.slice(
+    0,
+    state.undoSnapshot.actionCount
+  );
+
+  // Clear the snapshot
+  state.undoSnapshot = null;
+
+  // Clear any UI states
+  state.previewingOpponentBoard = false;
+  state.confirmingSkip = false;
+
+  showToast('Move undone');
 }
 
 export function openMapView(): void {
@@ -358,6 +427,9 @@ export function confirmPlacement(): void {
       const patches = getAvailablePatches(state.gameState);
       const patch = patches[state.placementState.patchIndex];
       const patchId = patch?.id ?? 0;
+
+      // Save snapshot before buying patch
+      saveUndoSnapshot();
 
       const result = buyPatch(
         state.gameState,
@@ -699,6 +771,14 @@ function processNextLeatherPatch(): void {
 
 function checkGameEnd(): void {
   if (!state.gameState) return;
+
+  // Clear undo snapshot if turn changed to different player
+  if (state.undoSnapshot) {
+    const currentPlayerIndex = getCurrentPlayerIndex(state.gameState);
+    if (currentPlayerIndex !== state.undoSnapshot.playerIndex) {
+      state.undoSnapshot = null;
+    }
+  }
 
   if (isGameOver(state.gameState)) {
     // Finalize history with final scores
