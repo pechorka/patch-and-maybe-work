@@ -12,7 +12,7 @@ import {
   loadTestGameNearLastIncome, loadTestGameOver,
 } from './main';
 import { getTransformedShape } from './shape-utils';
-import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor } from './colors';
+import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor, drawPlayerGradient } from './colors';
 import { getOpponentIndex } from './player-utils';
 import { renderBoard as renderBoardNew } from './renderer/board-renderer';
 
@@ -140,6 +140,9 @@ export function render(state: AppState): void {
 }
 
 function renderSetupScreen(state: AppState): void {
+  // Draw gradient background
+  drawPlayerGradient(ctx, 0, 0, width, height);
+
   const centerX = width / 2;
 
   // Title
@@ -719,16 +722,22 @@ function renderGameEndScreen(state: AppState): void {
   if (!state.gameState) return;
 
   const game = state.gameState;
+  const winner = getWinner(game);
   const centerX = width / 2;
+
+  // Fill background with winner's color or gradient if tie
+  if (winner === 'tie') {
+    drawPlayerGradient(ctx, 0, 0, width, height);
+  } else {
+    ctx.fillStyle = getPlayerColor(winner, false);
+    ctx.fillRect(0, 0, width, height);
+  }
 
   // Title
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 48px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('GAME OVER', centerX, height * 0.2);
-
-  // Scores
-  const winner = getWinner(game);
 
   for (let i = 0; i < 2; i++) {
     const player = game.players[i];
@@ -812,6 +821,10 @@ function renderBoardPreview(state: AppState): void {
   const player = game.players[state.previewPlayerIdx];
   const centerX = width / 2;
 
+  // Fill background with previewed player's color
+  ctx.fillStyle = getPlayerColor(state.previewPlayerIdx as 0 | 1, false);
+  ctx.fillRect(0, 0, width, height);
+
   // Title with player name
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 36px sans-serif';
@@ -855,13 +868,23 @@ function renderMapViewScreen(state: AppState): void {
   if (!state.gameState) return;
 
   const game = state.gameState;
+  const currentPlayerIdx = getCurrentPlayerIndex(game);
   const centerX = width / 2;
   const centerY = height / 2;
+
+  // Fill background with current player's color
+  ctx.fillStyle = getPlayerColor(currentPlayerIdx as 0 | 1, false);
+  ctx.fillRect(0, 0, width, height);
 
   // Calculate dimensions based on screen size
   const minDim = Math.min(width, height);
   const trackRadius = minDim * 0.18;
   const patchRingRadius = minDim * 0.42;
+
+  // Draw square background behind the patch ring area
+  const bgSize = patchRingRadius * 2 + 60;  // Add padding around patches
+  ctx.fillStyle = COLORS.boardBg;
+  ctx.fillRect(centerX - bgSize / 2, centerY - bgSize / 2, bgSize, bgSize);
 
   // Render circular time track in center
   renderCircularTimeTrack(game, centerX, centerY, trackRadius);

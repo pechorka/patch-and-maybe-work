@@ -16,9 +16,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: make interface so player one is on the top and player 2 is at the bottom
 // So users can place device between each other and sit acros each other
 // TODO: show map button on placement screen
-// TODO: change player colors to corporate SA DEV ANA colors
-// TODO: board preview on game over screen should have player background
-// TODO: add indiaction on player change (maybe some kind of animation?)
 // TODO: add animation for leather patch arrival
 // TODO: better leather patch visibility
 // TODO: congratulate player on 7x7 dorogo bogato
