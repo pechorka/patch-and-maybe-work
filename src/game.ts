@@ -372,3 +372,66 @@ export function placeLeatherPatch(
 
   return true;
 }
+
+// Test helper functions for admin test screen
+export function createTestGameWith1Patch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  // Keep only 1 patch in the market
+  state.patches = state.patches.slice(0, 1);
+  state.marketPosition = 0;
+  return state;
+}
+
+export function createTestGameWith2Patches(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  // Keep only 2 patches in the market
+  state.patches = state.patches.slice(0, 2);
+  state.marketPosition = 0;
+  return state;
+}
+
+export function createTestGameNearIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
+
+  // Position current player just before first income checkpoint (position 5)
+  currentPlayer.position = 4;
+  currentPlayer.income = 3; // Give them some income to collect
+
+  // Put opponent ahead so current player stays current
+  opponent.position = 10;
+
+  return state;
+}
+
+export function createTestGameInfiniteMoney(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
+
+  // Give current player a huge amount of buttons
+  currentPlayer.buttons = 99999;
+
+  // Keep both at position 0, so firstPlayerIndex determines who goes first
+  currentPlayer.position = 0;
+  opponent.position = 0;
+
+  return state;
+}
+
+export function createTestGameNearLeatherPatch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
+
+  // Get first leather patch position and position current player just before it
+  const firstLeatherPos = state.leatherPatches[0]?.position ?? 8;
+  currentPlayer.position = Math.max(0, firstLeatherPos - 1);
+  currentPlayer.buttons = 50; // Give enough buttons to buy patches
+
+  // Put opponent ahead so current player stays current
+  opponent.position = firstLeatherPos + 5;
+
+  return state;
+}

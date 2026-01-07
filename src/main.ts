@@ -1,5 +1,5 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead } from './game';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
@@ -49,6 +49,12 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: optional timer per turn
 
 
+// Check for admin mode via query parameter
+function isAdminMode(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  return params.has('admin');
+}
+
 // App state
 const state: AppState = {
   screen: 'setup',
@@ -83,6 +89,51 @@ export function selectFirstPlayer(playerIdx: 0 | 1): void {
 
 export function startGame(): void {
   state.gameState = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+  render(state);
+}
+
+// Admin test screen actions
+export function getIsAdminMode(): boolean {
+  return isAdminMode();
+}
+
+export function openAdminTestScreen(): void {
+  state.screen = 'adminTest';
+  render(state);
+}
+
+export function backToSetup(): void {
+  state.screen = 'setup';
+  render(state);
+}
+
+export function loadTestGame1Patch(): void {
+  state.gameState = createTestGameWith1Patch(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+  render(state);
+}
+
+export function loadTestGame2Patches(): void {
+  state.gameState = createTestGameWith2Patches(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+  render(state);
+}
+
+export function loadTestGameNearIncome(): void {
+  state.gameState = createTestGameNearIncome(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+  render(state);
+}
+
+export function loadTestGameInfiniteMoney(): void {
+  state.gameState = createTestGameInfiniteMoney(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+  render(state);
+}
+
+export function loadTestGameNearLeatherPatch(): void {
+  state.gameState = createTestGameNearLeatherPatch(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
   render(state);
 }

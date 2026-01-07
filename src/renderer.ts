@@ -6,6 +6,9 @@ import {
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
+  getIsAdminMode, openAdminTestScreen, backToSetup,
+  loadTestGame1Patch, loadTestGame2Patches,
+  loadTestGameNearIncome, loadTestGameInfiniteMoney, loadTestGameNearLeatherPatch,
 } from './main';
 import { getTransformedShape } from './shape-utils';
 import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor } from './colors';
@@ -108,6 +111,9 @@ export function render(state: AppState): void {
   switch (state.screen) {
     case 'setup':
       renderSetupScreen(state);
+      break;
+    case 'adminTest':
+      renderAdminTestScreen(state);
       break;
     case 'game':
       renderGameScreen(state);
@@ -213,6 +219,92 @@ function renderSetupScreen(state: AppState): void {
     x: startBtnX, y: startBtnY, width: startBtnWidth, height: startBtnHeight,
     label: 'Start Game',
     action: startGame,
+    type: 'standard',
+  });
+
+  // Admin test button (only visible if admin query param is present)
+  if (getIsAdminMode()) {
+    const adminBtnWidth = 200;
+    const adminBtnHeight = 50;
+    const adminBtnX = centerX - adminBtnWidth / 2;
+    const adminBtnY = startBtnY + startBtnHeight + 20;
+
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(adminBtnX, adminBtnY, adminBtnWidth, adminBtnHeight);
+
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('ADMIN TESTS', centerX, adminBtnY + adminBtnHeight / 2 + 6);
+
+    buttons.push({
+      x: adminBtnX, y: adminBtnY, width: adminBtnWidth, height: adminBtnHeight,
+      label: 'Admin Tests',
+      action: openAdminTestScreen,
+      type: 'standard',
+    });
+  }
+}
+
+function renderAdminTestScreen(_state: AppState): void {
+  const centerX = width / 2;
+
+  // Title
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ADMIN TEST SCREEN', centerX, height * 0.12);
+
+  // Test scenario buttons
+  const btnWidth = Math.min(400, width - 40);
+  const btnHeight = 60;
+  const btnGap = 15;
+  const startY = height * 0.22;
+
+  const testScenarios = [
+    { label: '1 Patch in Shop', action: loadTestGame1Patch },
+    { label: '2 Patches in Shop', action: loadTestGame2Patches },
+    { label: 'Near Income Checkpoint', action: loadTestGameNearIncome },
+    { label: 'Infinite Money', action: loadTestGameInfiniteMoney },
+    { label: 'Near Leather Patch', action: loadTestGameNearLeatherPatch },
+  ];
+
+  testScenarios.forEach((scenario, i) => {
+    const btnX = centerX - btnWidth / 2;
+    const btnY = startY + i * (btnHeight + btnGap);
+
+    ctx.fillStyle = COLORS.button;
+    ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(scenario.label, centerX, btnY + btnHeight / 2 + 7);
+
+    buttons.push({
+      x: btnX, y: btnY, width: btnWidth, height: btnHeight,
+      label: scenario.label,
+      action: scenario.action,
+      type: 'standard',
+    });
+  });
+
+  // Back button
+  const backBtnWidth = 150;
+  const backBtnHeight = 50;
+  const backBtnX = centerX - backBtnWidth / 2;
+  const backBtnY = height - backBtnHeight - 30;
+
+  ctx.fillStyle = COLORS.panel;
+  ctx.fillRect(backBtnX, backBtnY, backBtnWidth, backBtnHeight);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('BACK', centerX, backBtnY + backBtnHeight / 2 + 6);
+
+  buttons.push({
+    x: backBtnX, y: backBtnY, width: backBtnWidth, height: backBtnHeight,
+    label: 'Back',
+    action: backToSetup,
     type: 'standard',
   });
 }

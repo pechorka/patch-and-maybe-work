@@ -1,6 +1,6 @@
 export type BoardSize = 9;
 
-export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview';
+export type Screen = 'setup' | 'game' | 'placement' | 'gameEnd' | 'mapView' | 'boardPreview' | 'adminTest';
 
 export type Shape = (0 | 1)[][];
 
