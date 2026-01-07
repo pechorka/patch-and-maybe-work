@@ -114,7 +114,8 @@ export function getCurrentPlayer(state: GameState): Player {
 
 export function getAvailablePatches(state: GameState): Patch[] {
   const available: Patch[] = [];
-  for (let i = 0; i < 3; i++) {
+  const maxPatches = Math.min(3, state.patches.length);
+  for (let i = 0; i < maxPatches; i++) {
     const index = (state.marketPosition + i) % state.patches.length;
     if (state.patches[index]) {
       available.push(state.patches[index]);
