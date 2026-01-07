@@ -363,13 +363,17 @@ function renderGameScreen(state: AppState): void {
   const opponent = game.players[getOpponentIndex(currentPlayerIdx)];
   const spacesToSkip = opponent.position - currentPlayer.position + 1;
 
-  ctx.fillStyle = COLORS.button;
+  const isConfirming = state.confirmingSkip;
+  ctx.fillStyle = isConfirming ? '#e67e22' : COLORS.button;  // Orange when confirming
   ctx.fillRect(skipBtnX, skipBtnY, skipBtnWidth, skipBtnHeight);
 
   ctx.fillStyle = COLORS.text;
   ctx.font = 'bold 20px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`SKIP & MOVE AHEAD (+${spacesToSkip})`, skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + 7);
+  const skipText = isConfirming
+    ? 'TAP AGAIN TO CONFIRM'
+    : `SKIP & MOVE AHEAD (+${spacesToSkip})`;
+  ctx.fillText(skipText, skipBtnX + skipBtnWidth / 2, skipBtnY + skipBtnHeight / 2 + 7);
 
   buttons.push({
     x: skipBtnX, y: skipBtnY, width: skipBtnWidth, height: skipBtnHeight,

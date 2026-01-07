@@ -86,6 +86,7 @@ export interface AppState {
   pendingLeatherPatches: number[];   // Queue of leather patch positions to collect
   placingLeatherPatch: Patch | null; // Current leather patch being placed
   previewingOpponentBoard: boolean;  // True when holding opponent's panel to preview their board
+  confirmingSkip: boolean;  // True when user tapped skip once and needs to confirm
 }
 
 export type ButtonType = 'standard' | 'patch' | 'track-position' | 'player-panel';

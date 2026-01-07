@@ -11,7 +11,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
-// TODO: confirm before skiping turn
 // TODO: autoskip if player can't buy anything
 // TODO: label to player order selection
 // TODO: move confirm and cancel button to the bottom (all button at the bottom)
@@ -53,6 +52,7 @@ const state: AppState = {
   pendingLeatherPatches: [],
   placingLeatherPatch: null,
   previewingOpponentBoard: false,
+  confirmingSkip: false,
 };
 
 // Setup screen actions
@@ -127,6 +127,7 @@ export function loadTestGameOver(): void {
 export function selectPatch(patchIndex: number, screenX: number, screenY: number): void {
   if (state.gameState) {
     state.previewingOpponentBoard = false;
+    state.confirmingSkip = false;
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[patchIndex];
     if (patch) {
@@ -157,6 +158,14 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
 export function skip(): void {
   if (state.gameState) {
     state.previewingOpponentBoard = false;
+
+    // Require confirmation before skipping
+    if (!state.confirmingSkip) {
+      state.confirmingSkip = true;
+      return;
+    }
+
+    state.confirmingSkip = false;
     const result = skipAhead(state.gameState);
     if (result.crossedLeatherPositions.length > 0) {
       state.pendingLeatherPatches = result.crossedLeatherPositions;
@@ -170,6 +179,7 @@ export function skip(): void {
 export function openMapView(): void {
   if (state.gameState) {
     state.previewingOpponentBoard = false;
+    state.confirmingSkip = false;
     clearTappedTrackPosition();
     state.screen = 'mapView';
   }
