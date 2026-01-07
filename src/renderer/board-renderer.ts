@@ -6,6 +6,7 @@ export interface GhostOptions {
   patch: Patch;
   placement: PlacementState;
   canPlace: boolean;
+  scale?: number;  // Animation scale (0-1), defaults to 1
 }
 
 /**
@@ -42,6 +43,13 @@ export function renderBoard(
   for (const placed of player.placedPatches) {
     const shape = getTransformedShape(placed.patch.shape, placed.rotation, placed.reflected);
     const patchColor = getPatchColor(placed.patch.id);
+    const isLeatherPatch = placed.patch.id < 0;
+
+    // Add glow effect for leather patches
+    if (isLeatherPatch) {
+      ctx.shadowColor = COLORS.leatherPatchGlow;
+      ctx.shadowBlur = cellSize * 0.4;
+    }
 
     ctx.fillStyle = patchColor;
     for (let row = 0; row < shape.length; row++) {
@@ -52,6 +60,11 @@ export function renderBoard(
           ctx.fillRect(cellX + cellPadding, cellY + cellPadding, cellSize - cellPadding * 2, cellSize - cellPadding * 2);
         }
       }
+    }
+
+    // Reset shadow
+    if (isLeatherPatch) {
+      ctx.shadowBlur = 0;
     }
 
     drawButtonIndicators(ctx, shape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
@@ -73,7 +86,28 @@ export function renderBoard(
   // Draw ghost patch if provided
   if (ghost) {
     const ghostShape = getTransformedShape(ghost.patch.shape, ghost.placement.rotation, ghost.placement.reflected);
+    const isLeatherPatch = ghost.patch.id < 0;
+    const animScale = ghost.scale ?? 1;
+
+    // Add glow effect for leather patches
+    if (isLeatherPatch) {
+      ctx.shadowColor = COLORS.leatherPatchGlow;
+      ctx.shadowBlur = cellSize * 0.4 * animScale;
+    }
+
     ctx.fillStyle = ghost.canPlace ? COLORS.ghostValid : COLORS.ghostInvalid;
+
+    // Calculate ghost center for scale animation
+    const ghostCenterX = x + (ghost.placement.x + ghostShape[0].length / 2) * cellSize;
+    const ghostCenterY = y + (ghost.placement.y + ghostShape.length / 2) * cellSize;
+
+    // Apply scale transform if animating
+    if (animScale < 1) {
+      ctx.save();
+      ctx.translate(ghostCenterX, ghostCenterY);
+      ctx.scale(animScale, animScale);
+      ctx.translate(-ghostCenterX, -ghostCenterY);
+    }
 
     for (let row = 0; row < ghostShape.length; row++) {
       for (let col = 0; col < ghostShape[row].length; col++) {
@@ -83,6 +117,14 @@ export function renderBoard(
           ctx.fillRect(cellX + cellPadding, cellY + cellPadding, cellSize - cellPadding * 2, cellSize - cellPadding * 2);
         }
       }
+    }
+
+    // Reset shadow and restore transform
+    if (isLeatherPatch) {
+      ctx.shadowBlur = 0;
+    }
+    if (animScale < 1) {
+      ctx.restore();
     }
 
     drawButtonIndicators(ctx, ghostShape, ghost.patch.buttonIncome, x + ghost.placement.x * cellSize, y + ghost.placement.y * cellSize, cellSize);

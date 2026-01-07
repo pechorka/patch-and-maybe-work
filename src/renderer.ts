@@ -746,7 +746,21 @@ function renderPlacementScreen(state: AppState): void {
   const layout = getBoardLayout(width, height, game.boardSize);
   const { boardLeft, boardTop, boardSize } = layout;
 
-  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
+  // Calculate animation scale for leather patch spawn animation
+  let animScale: number | undefined;
+  if (isLeatherPatch && state.leatherPatchAnimationStart !== null) {
+    const ANIMATION_DURATION_MS = 300;
+    const elapsed = Date.now() - state.leatherPatchAnimationStart;
+    const progress = Math.min(1, elapsed / ANIMATION_DURATION_MS);
+    // easeOutBack for a pop effect (starts small, overshoots slightly, settles at 1)
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    animScale = progress < 1
+      ? 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2)
+      : 1;
+  }
+
+  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace, animScale);
 
   // Patch info panel (below board)
   const infoY = boardTop + boardSize + scale(minDim, 0.03125);
@@ -837,9 +851,10 @@ function renderBoardWithGhost(
   size: number,
   patch: Patch,
   placement: PlacementState,
-  canPlace: boolean
+  canPlace: boolean,
+  scale?: number
 ): void {
-  renderBoardNew(ctx, player, x, y, size, { patch, placement, canPlace });
+  renderBoardNew(ctx, player, x, y, size, { patch, placement, canPlace, scale });
 }
 
 function renderGameEndScreen(state: AppState): void {

@@ -13,8 +13,6 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 // TODO: label to player order selection
-// TODO: add animation for leather patch arrival
-// TODO: better leather patch visibility
 // TODO: congratulate player on 7x7 dorogo bogato
 // TODO: audio and haptic feedback
 // TODO: patch placement animation
@@ -75,6 +73,7 @@ const state: AppState = {
   previewPlayerIdx: null,
   pendingLeatherPatches: [],
   placingLeatherPatch: null,
+  leatherPatchAnimationStart: null,
   previewingOpponentBoard: false,
   confirmingSkip: false,
   autoSkipEnabled: loadAutoSkipPref(),
@@ -325,6 +324,7 @@ export function confirmPlacement(): void {
         state.placementState = null;
         state.dragState = null;
         state.placingLeatherPatch = null;
+        state.leatherPatchAnimationStart = null;
         // Check for more pending leather patches
         processNextLeatherPatch();
       }
@@ -642,6 +642,7 @@ function processNextLeatherPatch(): void {
       rotation: 0,
       reflected: false,
     };
+    state.leatherPatchAnimationStart = Date.now();
     state.screen = 'placement';
   } else {
     // Patch already collected, move to next

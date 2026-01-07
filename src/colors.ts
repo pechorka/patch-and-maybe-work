@@ -9,6 +9,7 @@ export const COLORS = {
   boardGrid: '#2c3e50',
   buttonIndicator: '#3498db',
   leatherPatch: '#8B4513',  // Saddle brown - leather color
+  leatherPatchGlow: '#f1c40f',  // Golden yellow glow for leather patches
   player1: '#FF33B9',  // Pink/magenta for Player 1
   player2: '#4c6cff',  // Blue for Player 2
   player1Dim: '#991F6F',  // Dimmed pink for inactive P1

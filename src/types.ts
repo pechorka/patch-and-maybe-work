@@ -89,6 +89,7 @@ export interface AppState {
   previewPlayerIdx: number | null;
   pendingLeatherPatches: number[];   // Queue of leather patch positions to collect
   placingLeatherPatch: Patch | null; // Current leather patch being placed
+  leatherPatchAnimationStart: number | null; // Timestamp when leather patch spawn animation started
   previewingOpponentBoard: boolean;  // True when holding opponent's panel to preview their board
   confirmingSkip: boolean;  // True when user tapped skip once and needs to confirm
   autoSkipEnabled: boolean;  // True when auto-skip is enabled for players who can't afford any patches
