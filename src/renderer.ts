@@ -1,4 +1,4 @@
-import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape, Toast } from './types';
+import type { AppState, Button, GameState, Patch, PlacementState, Player, RenderContext, RenderResult, Shape, Toast } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
   editName, startGame, selectFirstPlayer, toggleAutoSkip, toggleFaceToFaceMode,
@@ -21,18 +21,6 @@ import { calculateStats, calculateChartData } from './stats';
 import { renderCharts } from './renderer/chart-renderer';
 import { getMinDim, LAYOUT, scale, font, getBoardLayout } from './layout';
 
-let canvas: HTMLCanvasElement;
-let ctx: CanvasRenderingContext2D;
-let width: number;
-let height: number;
-let minDim: number;
-
-// Track tapped position on time track (for distance display)
-let lastTappedTrackPos: number | null = null;
-
-// Store button positions for hit detection
-export let buttons: Button[] = [];
-
 // Board layout info for coordinate calculations
 export interface BoardLayout {
   boardLeft: number;
@@ -42,8 +30,8 @@ export interface BoardLayout {
   boardCells: number;    // 7, 9, or 11
 }
 
-export function getPlacementBoardLayout(gameState: GameState): BoardLayout {
-  const layout = getBoardLayout(width, height, gameState.boardSize);
+export function getPlacementBoardLayout(rctx: RenderContext, boardSize: number): BoardLayout {
+  const layout = getBoardLayout(rctx.width, rctx.height, boardSize);
   return {
     boardLeft: layout.boardLeft,
     boardTop: layout.boardTop,
@@ -81,94 +69,96 @@ export function centerShapeOnCell(
   };
 }
 
-export function initRenderer(canvasElement: HTMLCanvasElement): void {
-  canvas = canvasElement;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Could not get 2D context');
-  ctx = context;
+export function createRenderContext(canvasElement: HTMLCanvasElement): RenderContext {
+  const ctx = canvasElement.getContext('2d');
+  if (!ctx) throw new Error('Could not get 2D context');
 
-  resize();
-  window.addEventListener('resize', resize);
-}
-
-function resize(): void {
   const dpr = window.devicePixelRatio || 1;
-  width = window.innerWidth;
-  height = window.innerHeight;
-  minDim = getMinDim(width, height);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const minDim = getMinDim(width, height);
 
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  canvas.style.width = width + 'px';
-  canvas.style.height = height + 'px';
-
+  canvasElement.width = width * dpr;
+  canvasElement.height = height * dpr;
+  canvasElement.style.width = width + 'px';
+  canvasElement.style.height = height + 'px';
   ctx.scale(dpr, dpr);
+
+  return { canvas: canvasElement, ctx, width, height, minDim };
 }
 
-function ctxTransaction(body: () => void): void {
+export function resizeRenderContext(rctx: RenderContext): RenderContext {
+  const dpr = window.devicePixelRatio || 1;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const minDim = getMinDim(width, height);
+
+  rctx.canvas.width = width * dpr;
+  rctx.canvas.height = height * dpr;
+  rctx.canvas.style.width = width + 'px';
+  rctx.canvas.style.height = height + 'px';
+  rctx.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+  rctx.ctx.scale(dpr, dpr);
+
+  return { ...rctx, width, height, minDim };
+}
+
+function ctxTransaction(ctx: CanvasRenderingContext2D, body: () => void): void {
   ctx.save();
   body();
   ctx.restore();
 }
 
-// Track if current render is rotated (for input coordinate transformation)
-let isScreenRotated = false;
-
-export function getIsScreenRotated(): boolean {
-  return isScreenRotated;
-}
-
-export function getCanvasDimensions(): { width: number; height: number } {
-  return { width, height };
-}
-
-export function render(state: AppState): void {
-  buttons = [];
+export function render(
+  rctx: RenderContext,
+  state: AppState,
+  lastTappedTrackPos: number | null
+): RenderResult {
+  const buttons: Button[] = [];
+  const { ctx, width, height } = rctx;
 
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, width, height);
 
   // Determine if screen should be rotated (face-to-face mode + player 2's turn + game/placement screen)
-  const shouldRotate = state.faceToFaceMode &&
+  const isScreenRotated = state.faceToFaceMode &&
     (state.screen === 'game' || state.screen === 'placement') &&
     state.gameState !== null &&
     getCurrentPlayerIndex(state.gameState) === 1;
-
-  isScreenRotated = shouldRotate;
 
   // Get the appropriate render function for the current screen
   let renderScreen: () => void;
   switch (state.screen) {
     case 'setup':
-      renderScreen = () => renderSetupScreen(state);
+      renderScreen = () => renderSetupScreen(rctx, buttons, state);
       break;
     case 'adminTest':
-      renderScreen = () => renderAdminTestScreen(state);
+      renderScreen = () => renderAdminTestScreen(rctx, buttons, state);
       break;
     case 'game':
-      renderScreen = () => renderGameScreen(state);
+      renderScreen = () => renderGameScreen(rctx, buttons, state);
       break;
     case 'placement':
-      renderScreen = () => renderPlacementScreen(state);
+      renderScreen = () => renderPlacementScreen(rctx, buttons, state);
       break;
     case 'gameEnd':
-      renderScreen = () => renderGameEndScreen(state);
+      renderScreen = () => renderGameEndScreen(rctx, buttons, state);
       break;
     case 'mapView':
-      renderScreen = () => renderMapViewScreen(state);
+      renderScreen = () => renderMapViewScreen(rctx, buttons, state, lastTappedTrackPos);
       break;
     case 'boardPreview':
-      renderScreen = () => renderBoardPreview(state);
+      renderScreen = () => renderBoardPreview(rctx, buttons, state);
       break;
     default:
       renderScreen = () => {};
   }
 
   // Apply rotation if needed
-  if (shouldRotate) {
+  if (isScreenRotated) {
     const originalRender = renderScreen;
     renderScreen = () => {
-      ctxTransaction(() => {
+      ctxTransaction(ctx, () => {
         ctx.translate(width / 2, height / 2);
         ctx.rotate(Math.PI);
         ctx.translate(-width / 2, -height / 2);
@@ -181,11 +171,15 @@ export function render(state: AppState): void {
 
   // Render toast overlay (on top of everything, not rotated)
   if (state.toasts.length > 0) {
-    renderToasts(state.toasts);
+    renderToasts(rctx, state.toasts);
   }
+
+  return { buttons, isScreenRotated };
 }
 
-function renderSetupScreen(state: AppState): void {
+function renderSetupScreen(rctx: RenderContext, buttons: Button[], state: AppState): void {
+  const { ctx, width, height, minDim } = rctx;
+
   // Draw gradient background
   drawPlayerGradient(ctx, 0, 0, width, height);
 
@@ -408,7 +402,8 @@ function renderSetupScreen(state: AppState): void {
   }
 }
 
-function renderAdminTestScreen(_state: AppState): void {
+function renderAdminTestScreen(rctx: RenderContext, buttons: Button[], _state: AppState): void {
+  const { ctx, width, height, minDim } = rctx;
   const centerX = width / 2;
 
   // Title
@@ -474,9 +469,10 @@ function renderAdminTestScreen(_state: AppState): void {
   });
 }
 
-function renderGameScreen(state: AppState): void {
+function renderGameScreen(rctx: RenderContext, buttons: Button[], state: AppState): void {
   if (!state.gameState) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
 
@@ -487,7 +483,7 @@ function renderGameScreen(state: AppState): void {
 
   // Player panels at top
   const panelHeight = scale(minDim, LAYOUT.panelHeight);
-  renderPlayerPanels(game, currentPlayerIdx, panelHeight);
+  renderPlayerPanels(rctx, buttons, game, currentPlayerIdx, panelHeight);
 
   // Board display - use centralized layout
   const layout = getBoardLayout(width, height, game.boardSize);
@@ -507,11 +503,11 @@ function renderGameScreen(state: AppState): void {
     boardSize + borderWidth * 2
   );
 
-  renderBoard(game.players[displayPlayerIdx], boardLeft, boardTop, boardSize);
+  renderBoard(ctx, game.players[displayPlayerIdx], boardLeft, boardTop, boardSize);
 
   // Available patches
   const patchesTop = boardTop + boardSize + scale(minDim, LAYOUT.gap.large);
-  renderAvailablePatches(game, boardLeft, patchesTop, boardSize);
+  renderAvailablePatches(rctx, buttons, game, boardLeft, patchesTop, boardSize);
 
   // Skip button
   const skipBtnWidth = boardSize;
@@ -566,7 +562,8 @@ function renderGameScreen(state: AppState): void {
   });
 }
 
-function renderPlayerPanels(game: GameState, currentPlayerIdx: number, panelHeight: number): void {
+function renderPlayerPanels(rctx: RenderContext, buttons: Button[], game: GameState, currentPlayerIdx: number, panelHeight: number): void {
+  const { ctx, width, minDim } = rctx;
   const panelWidth = width / 2;
   const overtakeDistance = getOvertakeDistance(game);
 
@@ -643,6 +640,7 @@ function getFilledCells(shape: Shape): {row: number, col: number}[] {
 }
 
 function drawButtonIndicators(
+  ctx: CanvasRenderingContext2D,
   shape: Shape,
   buttonIncome: number,
   startX: number,
@@ -664,11 +662,12 @@ function drawButtonIndicators(
   }
 }
 
-function renderBoard(player: Player, x: number, y: number, size: number): void {
+function renderBoard(ctx: CanvasRenderingContext2D, player: Player, x: number, y: number, size: number): void {
   renderBoardNew(ctx, player, x, y, size);
 }
 
-function renderAvailablePatches(game: GameState, x: number, y: number, totalWidth: number): void {
+function renderAvailablePatches(rctx: RenderContext, buttons: Button[], game: GameState, x: number, y: number, totalWidth: number): void {
+  const { ctx, minDim } = rctx;
   const patches = getAvailablePatches(game);
   const patchAreaWidth = totalWidth / 3;
   const patchAreaHeight = scale(minDim, LAYOUT.patchPanelHeight);
@@ -710,7 +709,7 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
     }
 
     // Draw button indicators
-    drawButtonIndicators(shape, patch.buttonIncome, shapeX, shapeY, cellSize);
+    drawButtonIndicators(ctx, shape, patch.buttonIncome, shapeX, shapeY, cellSize);
 
     // Cost info
     ctx.fillStyle = COLORS.text;
@@ -731,9 +730,10 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
   });
 }
 
-function renderPlacementAnimation(state: AppState): void {
+function renderPlacementAnimation(rctx: RenderContext, state: AppState): void {
   if (!state.gameState || !state.placementAnimation) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const anim = state.placementAnimation;
   const player = game.players[anim.playerIndex];
@@ -780,15 +780,16 @@ function renderPlacementAnimation(state: AppState): void {
   });
 }
 
-function renderPlacementScreen(state: AppState): void {
+function renderPlacementScreen(rctx: RenderContext, buttons: Button[], state: AppState): void {
   // If there's an active placement animation, render that instead
   if (state.placementAnimation && state.gameState) {
-    renderPlacementAnimation(state);
+    renderPlacementAnimation(rctx, state);
     return;
   }
 
   if (!state.gameState || !state.placementState) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const placement = state.placementState;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
@@ -838,7 +839,7 @@ function renderPlacementScreen(state: AppState): void {
   const layout = getBoardLayout(width, height, game.boardSize);
   const { boardLeft, boardTop, boardSize } = layout;
 
-  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
+  renderBoardWithGhost(ctx, player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
   // Patch info panel (below board)
   const infoY = boardTop + boardSize + scale(minDim, 0.03125);
@@ -923,6 +924,7 @@ function renderPlacementScreen(state: AppState): void {
 }
 
 function renderBoardWithGhost(
+  ctx: CanvasRenderingContext2D,
   player: Player,
   x: number,
   y: number,
@@ -930,14 +932,15 @@ function renderBoardWithGhost(
   patch: Patch,
   placement: PlacementState,
   canPlace: boolean,
-  scale?: number
+  scaleVal?: number
 ): void {
-  renderBoardNew(ctx, player, x, y, size, { patch, placement, canPlace, scale });
+  renderBoardNew(ctx, player, x, y, size, { patch, placement, canPlace, scale: scaleVal });
 }
 
-function renderGameEndScreen(state: AppState): void {
+function renderGameEndScreen(rctx: RenderContext, buttons: Button[], state: AppState): void {
   if (!state.gameState) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const winner = getWinner(game);
   const centerX = width / 2;
@@ -1112,9 +1115,10 @@ function countEmptySpaces(board: (number | null)[][]): number {
   return count;
 }
 
-function renderBoardPreview(state: AppState): void {
+function renderBoardPreview(rctx: RenderContext, buttons: Button[], state: AppState): void {
   if (!state.gameState || state.previewPlayerIdx === null) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const player = game.players[state.previewPlayerIdx];
   const centerX = width / 2;
@@ -1139,7 +1143,7 @@ function renderBoardPreview(state: AppState): void {
   const boardSize = Math.min(width * 0.85, height * 0.65);
   const boardX = centerX - boardSize / 2;
   const boardY = height * 0.18;
-  renderBoard(player, boardX, boardY, boardSize);
+  renderBoard(ctx, player, boardX, boardY, boardSize);
 
   // Back button
   const btnWidth = scale(minDim, LAYOUT.buttonWidth.small);
@@ -1162,9 +1166,10 @@ function renderBoardPreview(state: AppState): void {
   });
 }
 
-function renderMapViewScreen(state: AppState): void {
+function renderMapViewScreen(rctx: RenderContext, buttons: Button[], state: AppState, lastTappedTrackPos: number | null): void {
   if (!state.gameState) return;
 
+  const { ctx, width, height, minDim } = rctx;
   const game = state.gameState;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
   const centerX = width / 2;
@@ -1185,11 +1190,11 @@ function renderMapViewScreen(state: AppState): void {
   ctx.fillRect(centerX - bgSize / 2, centerY - bgSize / 2, bgSize, bgSize);
 
   // Render circular time track in center
-  renderCircularTimeTrack(game, centerX, centerY, trackRadius);
+  renderCircularTimeTrack(rctx, buttons, game, centerX, centerY, trackRadius, lastTappedTrackPos);
 
   // Render patches arranged in a circle around the track
   const innerRadius = trackRadius + scale(minDim, 0.0625);
-  renderPatchRing(game, centerX, centerY, innerRadius, patchRingRadius);
+  renderPatchRing(rctx, game, centerX, centerY, innerRadius, patchRingRadius);
 
   // Toggle map button (same position as game screen)
   const layout = getBoardLayout(width, height, game.boardSize);
@@ -1220,11 +1225,15 @@ function renderMapViewScreen(state: AppState): void {
 }
 
 function renderCircularTimeTrack(
+  rctx: RenderContext,
+  buttons: Button[],
   game: GameState,
   centerX: number,
   centerY: number,
-  radius: number
+  radius: number,
+  lastTappedTrackPos: number | null
 ): void {
+  const { ctx, minDim } = rctx;
   const trackLength = game.timeTrackLength;
   const currentPlayerIdx = getCurrentPlayerIndex(game);
   const currentPlayerPos = game.players[currentPlayerIdx].position;
@@ -1341,23 +1350,15 @@ function renderCircularTimeTrack(
   }
 }
 
-// Export function to set tapped track position
-export function setTappedTrackPosition(pos: number | null): void {
-  lastTappedTrackPos = pos;
-}
-
-// Export function to clear tapped position (called when leaving map view)
-export function clearTappedTrackPosition(): void {
-  lastTappedTrackPos = null;
-}
-
 function renderPatchRing(
+  rctx: RenderContext,
   game: GameState,
   centerX: number,
   centerY: number,
   innerRadius: number,
   outerRadius: number
 ): void {
+  const { ctx, minDim } = rctx;
   const patches = game.patches;
   const patchCount = patches.length;
 
@@ -1380,7 +1381,7 @@ function renderPatchRing(
     const isAvailable = availablePatchIds.has(patch.id);
     const availableIndex = isAvailable ? availablePatches.findIndex(p => p.id === patch.id) : -1;
 
-    renderPatchInRing(patch, x, y, maxCellSize, isAvailable, availableIndex);
+    renderPatchInRing(rctx, patch, x, y, maxCellSize, isAvailable, availableIndex);
   }
 
   // Draw market position indicator (arrow pointing to first available)
@@ -1408,6 +1409,7 @@ function renderPatchRing(
 }
 
 function renderPatchInRing(
+  rctx: RenderContext,
   patch: Patch,
   centerX: number,
   centerY: number,
@@ -1415,6 +1417,7 @@ function renderPatchInRing(
   isAvailable: boolean,
   availableIndex: number
 ): void {
+  const { ctx, minDim } = rctx;
   const shape = patch.shape;
   const patchHeight = shape.length;
   const patchWidth = shape[0].length;
@@ -1465,7 +1468,7 @@ function renderPatchInRing(
 
   // Draw button indicators for income
   if (patch.buttonIncome > 0) {
-    drawButtonIndicators(shape, patch.buttonIncome, startX, startY, cellSize);
+    drawButtonIndicators(ctx, shape, patch.buttonIncome, startX, startY, cellSize);
   }
 
   // Cost info below patch (compact)
@@ -1475,7 +1478,8 @@ function renderPatchInRing(
   ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + scale(minDim, 0.01));
 }
 
-function renderToasts(toasts: Toast[]): void {
+function renderToasts(rctx: RenderContext, toasts: Toast[]): void {
+  const { width, height, minDim } = rctx;
   const centerX = width / 2;
   const toastHeight = scale(minDim, LAYOUT.toast.height);
   const toastGap = scale(minDim, LAYOUT.toast.gap);
@@ -1486,7 +1490,7 @@ function renderToasts(toasts: Toast[]): void {
     const y = startY + index * (toastHeight + toastGap);
     const age = Date.now() - toast.createdAt;
     const opacity = calculateToastOpacity(age);
-    renderSingleToast(toast.message, centerX, y, opacity);
+    renderSingleToast(rctx, toast.message, centerX, y, opacity);
   });
 }
 
@@ -1499,7 +1503,8 @@ function calculateToastOpacity(age: number): number {
   return Math.max(0, 1 - fadeProgress);
 }
 
-function renderSingleToast(message: string, centerX: number, centerY: number, opacity: number): void {
+function renderSingleToast(rctx: RenderContext, message: string, centerX: number, centerY: number, opacity: number): void {
+  const { ctx, minDim } = rctx;
   // Measure text to size the background
   ctx.font = font(minDim, 'normal', 'bold');
   const textMetrics = ctx.measureText(message);

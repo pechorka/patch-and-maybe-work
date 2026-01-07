@@ -133,3 +133,16 @@ export interface Button {
   type: ButtonType;
   metadata?: ButtonMetadata;
 }
+
+export interface RenderContext {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  minDim: number;
+}
+
+export interface RenderResult {
+  buttons: Button[];
+  isScreenRotated: boolean;
+}

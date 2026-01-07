@@ -1,11 +1,16 @@
-import type { AppState, Patch, Shape } from './types';
+import type { AppState, Patch, RenderContext, RenderResult, Shape } from './types';
 import { buyPatch, calculateScore, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, getOvertakeDistance, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver, canAffordAnyPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
-import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
+import { centerShapeOnCell, createRenderContext, getPlacementBoardLayout, render, resizeRenderContext, screenToCellCoords } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref, loadAnimationsDisabledPref, saveAnimationsDisabledPref } from './storage';
 import { getRandomAnimationType, PLACEMENT_ANIMATION_DURATION } from './animations';
 import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchAction, type SkipAction, type LeatherPatchAction } from './history';
+
+// Render state (managed outside AppState since it's renderer-specific)
+let renderContext: RenderContext;
+let lastRenderResult: RenderResult = { buttons: [], isScreenRotated: false };
+let lastTappedTrackPos: number | null = null;
 
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
@@ -200,7 +205,7 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
     const patches = getAvailablePatches(state.gameState);
     const patch = patches[patchIndex];
     if (patch) {
-      const layout = getPlacementBoardLayout(state.gameState);
+      const layout = getPlacementBoardLayout(renderContext, state.gameState.boardSize);
       const { cellX, cellY } = screenToCellCoords(screenX, screenY, layout);
       const { x, y } = centerShapeOnCell(cellX, cellY, patch.shape);
 
@@ -265,7 +270,7 @@ export function openMapView(): void {
   if (state.gameState) {
     state.previewingOpponentBoard = false;
     state.confirmingSkip = false;
-    clearTappedTrackPosition();
+    lastTappedTrackPos = null;
     state.screen = 'mapView';
   }
 }
@@ -503,16 +508,16 @@ export function stopOpponentBoardPreview(): void {
 
 // Map view screen actions
 export function closeMapView(): void {
-  clearTappedTrackPosition();
+  lastTappedTrackPos = null;
   state.screen = 'game';
 }
 
 export function trackPosition(pos: number): void {
-  setTappedTrackPosition(pos);
+  lastTappedTrackPos = pos;
 }
 
 export function trackPositionRelease(): void {
-  clearTappedTrackPosition();
+  lastTappedTrackPos = null;
 }
 
 // Drag and drop functions for patch placement
@@ -523,7 +528,7 @@ export function isDragging(): boolean {
 export function isInsidePlacedPatch(screenX: number, screenY: number): boolean {
   if (!state.placementState || !state.gameState) return false;
 
-  const layout = getPlacementBoardLayout(state.gameState);
+  const layout = getPlacementBoardLayout(renderContext, state.gameState.boardSize);
   const patch = getCurrentPlacementPatch();
   if (!patch) return false;
 
@@ -553,7 +558,7 @@ export function startDrag(screenX: number, screenY: number): void {
 export function spawnPatchAt(screenX: number, screenY: number): void {
   if (!state.placementState || !state.gameState || state.screen !== 'placement') return;
 
-  const layout = getPlacementBoardLayout(state.gameState);
+  const layout = getPlacementBoardLayout(renderContext, state.gameState.boardSize);
   const patch = getCurrentPlacementPatch();
   if (!patch) return;
 
@@ -572,7 +577,7 @@ export function spawnPatchAt(screenX: number, screenY: number): void {
 export function updateDrag(screenX: number, screenY: number): void {
   if (!state.dragState || !state.placementState || !state.gameState) return;
 
-  const layout = getPlacementBoardLayout(state.gameState);
+  const layout = getPlacementBoardLayout(renderContext, state.gameState.boardSize);
 
   // Calculate pixel delta from drag start
   const deltaPixelsX = screenX - state.dragState.startScreenX;
@@ -790,7 +795,7 @@ function checkPlacementAnimation(): void {
 function gameLoop(): void {
   clearExpiredToasts();
   checkPlacementAnimation();
-  render(state);
+  lastRenderResult = render(renderContext, state, lastTappedTrackPos);
   requestAnimationFrame(gameLoop);
 }
 
@@ -801,8 +806,16 @@ function init(): void {
     return;
   }
 
-  initRenderer(canvas);
-  initInput(canvas, state);
+  renderContext = createRenderContext(canvas);
+  window.addEventListener('resize', () => {
+    renderContext = resizeRenderContext(renderContext);
+  });
+  initInput(
+    canvas,
+    state,
+    () => lastRenderResult,
+    () => ({ width: renderContext.width, height: renderContext.height })
+  );
   gameLoop();
 }
 
