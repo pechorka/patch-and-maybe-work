@@ -2,7 +2,6 @@ import type { BoardSize, GameState, LeatherPatchOnTrack, Patch, Player, Shape } 
 import { createLeatherPatch, getLeatherPatchPositions, PATCH_DEFINITIONS } from './patches';
 import { getOpponentIndex } from './player-utils';
 import { getTransformedShape } from './shape-utils';
-import { pureMovePlayerOnTrack, purePlacePatchOnBoard, pureCheck7x7Bonus, pureCollectLeatherPatch } from './pure-game-updates';
 
 export interface MoveResult {
   crossedLeatherPositions: number[];
@@ -65,17 +64,27 @@ function getIncomePositions(_boardSize: BoardSize): number[] {
 }
 
 function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveResult {
-  // Use pure function internally
-  const result = pureMovePlayerOnTrack(state, playerIndex, spaces);
+  const player = state.players[playerIndex];
+  const oldPosition = player.position;
+  const newPosition = Math.min(oldPosition + spaces, state.timeTrackLength);
 
-  // Update state in-place for backwards compatibility
-  const newPlayer = result.state.players[playerIndex];
-  const oldPlayer = state.players[playerIndex];
+  // Check for income checkpoints crossed (markers are "between" cells, triggered when passing over)
+  const checkpointsCrossed = state.incomePositions.filter(
+    pos => oldPosition <= pos && newPosition > pos
+  );
 
-  oldPlayer.position = newPlayer.position;
-  oldPlayer.buttons = newPlayer.buttons;
+  // Collect income for each checkpoint
+  player.buttons += checkpointsCrossed.length * player.income;
 
-  return { crossedLeatherPositions: result.crossedLeatherPositions };
+  // Check for leather patches crossed (uncollected only, markers are "between" cells)
+  const crossedLeatherPositions = state.leatherPatches
+    .filter(lp => !lp.collected && oldPosition <= lp.position && newPosition > lp.position)
+    .map(lp => lp.position);
+
+  // Update position
+  player.position = newPosition;
+
+  return { crossedLeatherPositions };
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -162,12 +171,17 @@ export function placePatchOnBoard(
   rotation: number,
   reflected: boolean
 ): void {
-  // Use pure function internally
-  const updatedPlayer = purePlacePatchOnBoard(player, patch, x, y, rotation, reflected);
+  const shape = getTransformedShape(patch.shape, rotation, reflected);
 
-  // Update player in-place for backwards compatibility
-  player.board = updatedPlayer.board;
-  player.placedPatches = updatedPlayer.placedPatches;
+  for (let row = 0; row < shape.length; row++) {
+    for (let col = 0; col < shape[row].length; col++) {
+      if (shape[row][col]) {
+        player.board[y + row][x + col] = patch.id;
+      }
+    }
+  }
+
+  player.placedPatches.push({ patch, x, y, rotation, reflected });
 }
 
 export interface BuyPatchResult {
@@ -289,13 +303,11 @@ export function check7x7Bonus(state: GameState, playerIndex: 0 | 1): boolean {
     return false;
   }
 
-  // Use pure function internally
-  const newState = pureCheck7x7Bonus(state, playerIndex, find7x7FilledArea);
+  const player = state.players[playerIndex];
+  const area = find7x7FilledArea(player.board);
 
-  // Check if state changed (bonus was awarded)
-  if (newState.bonus7x7Claimed && !state.bonus7x7Claimed) {
-    // Update state in-place for backwards compatibility
-    state.players[playerIndex].bonus7x7Area = newState.players[playerIndex].bonus7x7Area;
+  if (area !== null) {
+    player.bonus7x7Area = area;
     state.bonus7x7Claimed = true;
     return true;
   }
@@ -333,16 +345,8 @@ export function collectLeatherPatch(state: GameState, trackPosition: number): Pa
 
   if (!leatherPatch) return null;
 
-  // Use pure function internally (for testability)
-  pureCollectLeatherPatch(state, trackPosition);
-
-  // Update state in-place for backwards compatibility
-  const patchIndex = state.leatherPatches.findIndex(
-    lp => lp.position === trackPosition && !lp.collected
-  );
-  if (patchIndex !== -1) {
-    state.leatherPatches[patchIndex].collected = true;
-  }
+  // Mark as collected
+  leatherPatch.collected = true;
 
   // Return the patch object for placement
   return createLeatherPatch(leatherPatch.patchId);
