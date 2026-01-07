@@ -1,12 +1,18 @@
 import type { Patch, PlacementState, Player, Shape } from '../types';
 import { COLORS, getPatchColor } from '../colors';
 import { getTransformedShape } from '../shape-utils';
+import type { AnimationParams } from '../animations';
 
 export interface GhostOptions {
   patch: Patch;
   placement: PlacementState;
   canPlace: boolean;
   scale?: number;  // Animation scale (0-1), defaults to 1
+}
+
+export interface AnimatedPatchOptions {
+  patchId: number;
+  params: AnimationParams;
 }
 
 /**
@@ -19,7 +25,8 @@ export function renderBoard(
   x: number,
   y: number,
   size: number,
-  ghost?: GhostOptions
+  ghost?: GhostOptions,
+  animatedPatch?: AnimatedPatchOptions
 ): void {
   const boardSize = player.board.length;
   const cellSize = size / boardSize;
@@ -44,9 +51,33 @@ export function renderBoard(
     const shape = getTransformedShape(placed.patch.shape, placed.rotation, placed.reflected);
     const patchColor = getPatchColor(placed.patch.id);
     const isLeatherPatch = placed.patch.id < 0;
+    const isAnimated = animatedPatch && placed.patch.id === animatedPatch.patchId;
+    const params = isAnimated ? animatedPatch.params : null;
+
+    // Calculate patch center for animation transforms
+    const patchCenterX = x + (placed.x + shape[0].length / 2) * cellSize;
+    const patchCenterY = y + (placed.y + shape.length / 2) * cellSize;
+
+    // Apply animation transforms if this is the animated patch
+    if (params) {
+      ctx.save();
+      ctx.globalAlpha = params.opacity;
+
+      // Translate to center, apply transforms, translate back
+      ctx.translate(patchCenterX, patchCenterY + params.offsetY * size);
+      ctx.rotate(params.rotation);
+      ctx.scale(params.scale, params.scale);
+      ctx.translate(-patchCenterX, -patchCenterY);
+
+      // Apply glow effect if active
+      if (params.glowIntensity > 0) {
+        ctx.shadowColor = '#f1c40f';  // Gold glow
+        ctx.shadowBlur = cellSize * 0.8 * params.glowIntensity;
+      }
+    }
 
     // Add glow effect for leather patches
-    if (isLeatherPatch) {
+    if (isLeatherPatch && !params) {
       ctx.shadowColor = COLORS.leatherPatchGlow;
       ctx.shadowBlur = cellSize * 0.4;
     }
@@ -62,12 +93,18 @@ export function renderBoard(
       }
     }
 
-    // Reset shadow
-    if (isLeatherPatch) {
+    // Reset shadow and restore transform
+    if (isLeatherPatch && !params) {
       ctx.shadowBlur = 0;
     }
+    if (params) {
+      ctx.restore();
+    }
 
-    drawButtonIndicators(ctx, shape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
+    // Draw button indicators (skip during early animation when scale is too small)
+    if (!params || params.scale >= 0.5) {
+      drawButtonIndicators(ctx, shape, placed.patch.buttonIncome, x + placed.x * cellSize, y + placed.y * cellSize, cellSize);
+    }
   }
 
   // Draw 7x7 bonus highlight if player has earned it

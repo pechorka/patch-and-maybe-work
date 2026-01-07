@@ -3,7 +3,8 @@ import { buyPatch, calculateScore, check7x7Bonus, collectLeatherPatch, createGam
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
-import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref } from './storage';
+import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref, loadAnimationsDisabledPref, saveAnimationsDisabledPref } from './storage';
+import { getRandomAnimationType, PLACEMENT_ANIMATION_DURATION } from './animations';
 import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchAction, type SkipAction, type LeatherPatchAction } from './history';
 
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
@@ -15,7 +16,6 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // TODO: label to player order selection
 // TODO: congratulate player on 7x7 dorogo bogato
 // TODO: audio and haptic feedback
-// TODO: patch placement animation
 // TODO: total game time
 // TODO: optional timer per turn
 // TODO: add game rules
@@ -82,6 +82,8 @@ const state: AppState = {
   faceToFaceMode: loadFaceToFaceModePref(),
   historyManager: null,
   gameEndTab: 'summary',
+  placementAnimationsEnabled: !loadAnimationsDisabledPref(),
+  placementAnimation: null,
 };
 
 // Toast functions
@@ -124,6 +126,11 @@ export function toggleAutoSkip(): void {
 export function toggleFaceToFaceMode(): void {
   state.faceToFaceMode = !state.faceToFaceMode;
   saveFaceToFaceModePref(state.faceToFaceMode);
+}
+
+export function togglePlacementAnimations(): void {
+  state.placementAnimationsEnabled = !state.placementAnimationsEnabled;
+  saveAnimationsDisabledPref(!state.placementAnimationsEnabled);
 }
 
 export function startGame(): void {
@@ -363,15 +370,38 @@ export function confirmPlacement(): void {
 
         // Check for 7x7 bonus after placing patch
         check7x7Bonus(state.gameState, playerIdx);
-        state.placementState = null;
-        state.dragState = null;
-        // Queue leather patches for collection
-        if (result.crossedLeatherPositions.length > 0) {
+
+        // Start animation if enabled
+        if (state.placementAnimationsEnabled) {
+          state.placementAnimation = {
+            type: getRandomAnimationType(),
+            startTime: Date.now(),
+            patchId,
+            placement: {
+              x: state.placementState.x,
+              y: state.placementState.y,
+              rotation: state.placementState.rotation,
+              reflected: state.placementState.reflected,
+            },
+            playerIndex: playerIdx,
+          };
+          // Store pending leather patches to process after animation
           state.pendingLeatherPatches = result.crossedLeatherPositions;
-          processNextLeatherPatch();
+          state.placementState = null;
+          state.dragState = null;
+          // Screen stays as 'placement' during animation
         } else {
-          state.screen = 'game';
-          checkGameEnd();
+          // No animation - immediate transition
+          state.placementState = null;
+          state.dragState = null;
+          // Queue leather patches for collection
+          if (result.crossedLeatherPositions.length > 0) {
+            state.pendingLeatherPatches = result.crossedLeatherPositions;
+            processNextLeatherPatch();
+          } else {
+            state.screen = 'game';
+            checkGameEnd();
+          }
         }
       }
     }
@@ -720,8 +750,28 @@ function checkGameEnd(): void {
   }
 }
 
+function checkPlacementAnimation(): void {
+  if (!state.placementAnimation) return;
+
+  const elapsed = Date.now() - state.placementAnimation.startTime;
+
+  if (elapsed >= PLACEMENT_ANIMATION_DURATION) {
+    // Animation complete
+    state.placementAnimation = null;
+
+    // Process pending leather patches or transition to game
+    if (state.pendingLeatherPatches.length > 0) {
+      processNextLeatherPatch();
+    } else {
+      state.screen = 'game';
+      checkGameEnd();
+    }
+  }
+}
+
 function gameLoop(): void {
   clearExpiredToasts();
+  checkPlacementAnimation();
   render(state);
   requestAnimationFrame(gameLoop);
 }

@@ -60,6 +60,16 @@ export interface DragState {
   startCellY: number;        // Original placementState.y when drag started
 }
 
+export type PlacementAnimationType = 'pop' | 'glow' | 'slideIn';
+
+export interface PlacementAnimationState {
+  type: PlacementAnimationType;
+  startTime: number;
+  patchId: number;
+  placement: { x: number; y: number; rotation: number; reflected: boolean };
+  playerIndex: 0 | 1;
+}
+
 export interface LeatherPatchOnTrack {
   position: number;
   collected: boolean;
@@ -97,6 +107,8 @@ export interface AppState {
   faceToFaceMode: boolean;  // True when screen rotates 180° on player change for face-to-face play
   historyManager: HistoryManager | null;  // Turn history for stats/undo/replay
   gameEndTab: GameEndTab;  // Active tab on game end screen
+  placementAnimationsEnabled: boolean;  // True when placement animations are enabled
+  placementAnimation: PlacementAnimationState | null;  // Current placement animation in progress
 }
 
 export interface Toast {

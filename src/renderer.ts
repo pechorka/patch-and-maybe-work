@@ -2,6 +2,7 @@ import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape,
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
   editName, startGame, selectFirstPlayer, toggleAutoSkip, toggleFaceToFaceMode,
+  togglePlacementAnimations,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd, setGameEndTab,
@@ -11,6 +12,7 @@ import {
   loadTestGameNearIncome, loadTestGameInfiniteMoney, loadTestGameNearLeatherPatch,
   loadTestGameNearLastIncome, loadTestGameOver,
 } from './main';
+import { calculateAnimationParams, PLACEMENT_ANIMATION_DURATION } from './animations';
 import { getTransformedShape } from './shape-utils';
 import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor, drawPlayerGradient } from './colors';
 import { getOpponentIndex } from './player-utils';
@@ -325,6 +327,41 @@ function renderSetupScreen(state: AppState): void {
     x: checkboxX, y: faceToFaceY, width: checkboxHitWidth, height: checkboxSize,
     label: 'Toggle Face-to-face',
     action: toggleFaceToFaceMode,
+    type: 'standard',
+  });
+
+  // Placement animations toggle
+  const animationsY = height * 0.61;
+
+  // Checkbox
+  if (state.placementAnimationsEnabled) {
+    ctx.fillStyle = COLORS.panelActive;
+    ctx.fillRect(checkboxX, animationsY, checkboxSize, checkboxSize);
+    // Checkmark - positions relative to checkbox size
+    ctx.strokeStyle = COLORS.text;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(checkboxX + checkboxSize * 0.2, animationsY + checkboxSize * 0.5);
+    ctx.lineTo(checkboxX + checkboxSize * 0.4, animationsY + checkboxSize * 0.73);
+    ctx.lineTo(checkboxX + checkboxSize * 0.8, animationsY + checkboxSize * 0.27);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = COLORS.panel;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(checkboxX, animationsY, checkboxSize, checkboxSize);
+  }
+
+  // Label
+  ctx.fillStyle = COLORS.text;
+  ctx.font = font(minDim, 'small');
+  ctx.textAlign = 'left';
+  ctx.fillText('Placement animations', labelX, animationsY + checkboxSize / 2 + scale(minDim, 0.00625));
+  ctx.textAlign = 'center';
+
+  buttons.push({
+    x: checkboxX, y: animationsY, width: checkboxHitWidth, height: checkboxSize,
+    label: 'Toggle Placement Animations',
+    action: togglePlacementAnimations,
     type: 'standard',
   });
 
@@ -694,7 +731,49 @@ function renderAvailablePatches(game: GameState, x: number, y: number, totalWidt
   });
 }
 
+function renderPlacementAnimation(state: AppState): void {
+  if (!state.gameState || !state.placementAnimation) return;
+
+  const game = state.gameState;
+  const anim = state.placementAnimation;
+  const player = game.players[anim.playerIndex];
+
+  // Calculate animation progress
+  const elapsed = Date.now() - anim.startTime;
+  const progress = Math.min(1, elapsed / PLACEMENT_ANIMATION_DURATION);
+  const animParams = calculateAnimationParams(anim.type, progress);
+
+  // Fill background with player color
+  ctx.fillStyle = getPlayerColor(anim.playerIndex, false);
+  ctx.fillRect(0, 0, width, height);
+
+  // Top panel showing player name
+  const panelHeight = scale(minDim, LAYOUT.panelHeight);
+  ctx.fillStyle = getPlayerColor(anim.playerIndex, true);
+  ctx.fillRect(0, 0, width, panelHeight);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = font(minDim, 'normal', 'bold');
+  ctx.textAlign = 'center';
+  ctx.fillText(`${player.name}`, width / 2, panelHeight / 2 + scale(minDim, 0.00875));
+
+  // Board with animated patch (same size and position as game screen)
+  const layout = getBoardLayout(width, height, game.boardSize);
+  const { boardLeft, boardTop, boardSize } = layout;
+
+  // Render board with the animated patch
+  renderBoardNew(ctx, player, boardLeft, boardTop, boardSize, undefined, {
+    patchId: anim.patchId,
+    params: animParams,
+  });
+}
+
 function renderPlacementScreen(state: AppState): void {
+  // If there's an active placement animation, render that instead
+  if (state.placementAnimation && state.gameState) {
+    renderPlacementAnimation(state);
+    return;
+  }
+
   if (!state.gameState || !state.placementState) return;
 
   const game = state.gameState;

@@ -2,6 +2,7 @@ const STORAGE_KEY = 'patchwork_player_names';
 const FIRST_PLAYER_KEY = 'patchwork_first_player';
 const AUTO_SKIP_KEY = 'patchwork_auto_skip';
 const FACE_TO_FACE_KEY = 'patchwork_face_to_face';
+const ANIMATIONS_DISABLED_KEY = 'patchwork_animations_disabled';
 
 export function loadPlayerNames(): [string, string] {
   try {
@@ -77,5 +78,23 @@ export function saveFaceToFaceModePref(enabled: boolean): void {
     localStorage.setItem(FACE_TO_FACE_KEY, String(enabled));
   } catch (e) {
     console.error('Failed to save face-to-face preference to localStorage:', e);
+  }
+}
+
+export function loadAnimationsDisabledPref(): boolean {
+  try {
+    const stored = localStorage.getItem(ANIMATIONS_DISABLED_KEY);
+    return stored === 'true';
+  } catch (e) {
+    console.error('Failed to load animations disabled preference from localStorage:', e);
+  }
+  return false;
+}
+
+export function saveAnimationsDisabledPref(disabled: boolean): void {
+  try {
+    localStorage.setItem(ANIMATIONS_DISABLED_KEY, String(disabled));
+  } catch (e) {
+    console.error('Failed to save animations disabled preference to localStorage:', e);
   }
 }
