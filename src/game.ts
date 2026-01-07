@@ -372,3 +372,70 @@ export function placeLeatherPatch(
 
   return true;
 }
+
+// Test helper functions for admin test screen
+export function createTestGameWith1Patch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  // Keep only 1 patch in the market
+  state.patches = state.patches.slice(0, 1);
+  state.marketPosition = 0;
+  return state;
+}
+
+export function createTestGameWith2Patches(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  // Keep only 2 patches in the market
+  state.patches = state.patches.slice(0, 2);
+  state.marketPosition = 0;
+  return state;
+}
+
+export function createTestGameNear7x7(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const player = state.players[0];
+
+  // Fill almost a 7x7 area (48 cells filled, need 1 more for 7x7)
+  // Fill first 6 rows completely and first 6 cells of row 7
+  for (let y = 0; y < 7; y++) {
+    for (let x = 0; x < 7; x++) {
+      if (!(y === 6 && x === 6)) { // Leave one cell empty at (6,6)
+        player.board[y][x] = 999; // Use a special ID for test patches
+      }
+    }
+  }
+
+  return state;
+}
+
+export function createTestGameNearIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const player = state.players[0];
+
+  // Position player just before first income checkpoint (position 5)
+  player.position = 4;
+  player.income = 3; // Give them some income to collect
+
+  return state;
+}
+
+export function createTestGameInfiniteMoney(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const player = state.players[0];
+
+  // Give player a huge amount of buttons
+  player.buttons = 99999;
+
+  return state;
+}
+
+export function createTestGameNearLeatherPatch(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const player = state.players[0];
+
+  // Get first leather patch position and position player just before it
+  const firstLeatherPos = state.leatherPatches[0]?.position ?? 8;
+  player.position = Math.max(0, firstLeatherPos - 1);
+  player.buttons = 50; // Give enough buttons to buy patches
+
+  return state;
+}
