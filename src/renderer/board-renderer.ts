@@ -69,14 +69,17 @@ export function renderBoard(
       ctx.scale(params.scale, params.scale);
       ctx.translate(-patchCenterX, -patchCenterY);
 
-      // Apply glow effect if active
-      if (params.glowIntensity > 0) {
+      // Apply glow effect - leather patches always glow, others based on animation
+      if (isLeatherPatch) {
+        ctx.shadowColor = COLORS.leatherPatchGlow;
+        ctx.shadowBlur = Math.max(cellSize * 0.4, cellSize * 0.8 * params.glowIntensity);
+      } else if (params.glowIntensity > 0) {
         ctx.shadowColor = '#f1c40f';  // Gold glow
         ctx.shadowBlur = cellSize * 0.8 * params.glowIntensity;
       }
     }
 
-    // Add glow effect for leather patches
+    // Add glow effect for leather patches (when not animating)
     if (isLeatherPatch && !params) {
       ctx.shadowColor = COLORS.leatherPatchGlow;
       ctx.shadowBlur = cellSize * 0.4;

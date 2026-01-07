@@ -743,18 +743,31 @@ function renderPlacementAnimation(state: AppState): void {
   const progress = Math.min(1, elapsed / PLACEMENT_ANIMATION_DURATION);
   const animParams = calculateAnimationParams(anim.type, progress);
 
+  const isLeatherPatch = anim.patchId < 0;
+
   // Fill background with player color
   ctx.fillStyle = getPlayerColor(anim.playerIndex, false);
   ctx.fillRect(0, 0, width, height);
 
-  // Top panel showing player name
+  // Top panel
   const panelHeight = scale(minDim, LAYOUT.panelHeight);
-  ctx.fillStyle = getPlayerColor(anim.playerIndex, true);
-  ctx.fillRect(0, 0, width, panelHeight);
-  ctx.fillStyle = COLORS.text;
-  ctx.font = font(minDim, 'normal', 'bold');
-  ctx.textAlign = 'center';
-  ctx.fillText(`${player.name}`, width / 2, panelHeight / 2 + scale(minDim, 0.00875));
+  if (isLeatherPatch) {
+    // Show "LEATHER PATCH" label for leather patches
+    ctx.fillStyle = COLORS.leatherPatch;
+    ctx.fillRect(0, 0, width, panelHeight);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = font(minDim, 'normal', 'bold');
+    ctx.textAlign = 'center';
+    ctx.fillText('LEATHER PATCH', width / 2, panelHeight / 2 + scale(minDim, 0.00875));
+  } else {
+    // Show player name for regular patches
+    ctx.fillStyle = getPlayerColor(anim.playerIndex, true);
+    ctx.fillRect(0, 0, width, panelHeight);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = font(minDim, 'normal', 'bold');
+    ctx.textAlign = 'center';
+    ctx.fillText(`${player.name}`, width / 2, panelHeight / 2 + scale(minDim, 0.00875));
+  }
 
   // Board with animated patch (same size and position as game screen)
   const layout = getBoardLayout(width, height, game.boardSize);
@@ -825,21 +838,7 @@ function renderPlacementScreen(state: AppState): void {
   const layout = getBoardLayout(width, height, game.boardSize);
   const { boardLeft, boardTop, boardSize } = layout;
 
-  // Calculate animation scale for leather patch spawn animation
-  let animScale: number | undefined;
-  if (isLeatherPatch && state.leatherPatchAnimationStart !== null) {
-    const ANIMATION_DURATION_MS = 300;
-    const elapsed = Date.now() - state.leatherPatchAnimationStart;
-    const progress = Math.min(1, elapsed / ANIMATION_DURATION_MS);
-    // easeOutBack for a pop effect (starts small, overshoots slightly, settles at 1)
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    animScale = progress < 1
-      ? 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2)
-      : 1;
-  }
-
-  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace, animScale);
+  renderBoardWithGhost(player, boardLeft, boardTop, boardSize, patch, placement, canPlace);
 
   // Patch info panel (below board)
   const infoY = boardTop + boardSize + scale(minDim, 0.03125);

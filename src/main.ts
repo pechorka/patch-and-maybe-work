@@ -12,7 +12,6 @@ import { createHistoryManager, recordAction, finalizeHistory, type BuyPatchActio
 // TODO: original game balance (placement of letter and income checkboxes)
 // TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
-// TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 // TODO: label to player order selection
 // TODO: congratulate player on 7x7 dorogo bogato
 // TODO: audio and haptic feedback
@@ -74,7 +73,6 @@ const state: AppState = {
   previewPlayerIdx: null,
   pendingLeatherPatches: [],
   placingLeatherPatch: null,
-  leatherPatchAnimationStart: null,
   previewingOpponentBoard: false,
   confirmingSkip: false,
   autoSkipEnabled: loadAutoSkipPref(),
@@ -329,12 +327,31 @@ export function confirmPlacement(): void {
 
         // Check for 7x7 bonus after placing patch
         check7x7Bonus(state.gameState, playerIdx);
-        state.placementState = null;
-        state.dragState = null;
-        state.placingLeatherPatch = null;
-        state.leatherPatchAnimationStart = null;
-        // Check for more pending leather patches
-        processNextLeatherPatch();
+
+        // Start animation if enabled
+        if (state.placementAnimationsEnabled) {
+          state.placementAnimation = {
+            type: getRandomAnimationType(),
+            startTime: Date.now(),
+            patchId: state.placingLeatherPatch.id,
+            placement: {
+              x: state.placementState.x,
+              y: state.placementState.y,
+              rotation: state.placementState.rotation,
+              reflected: state.placementState.reflected,
+            },
+            playerIndex: playerIdx,
+          };
+          state.placementState = null;
+          state.dragState = null;
+          // Keep placingLeatherPatch set - cleared when animation completes
+        } else {
+          // No animation - immediate transition
+          state.placementState = null;
+          state.dragState = null;
+          state.placingLeatherPatch = null;
+          processNextLeatherPatch();
+        }
       }
     } else {
       // Regular market patch purchase
@@ -673,7 +690,6 @@ function processNextLeatherPatch(): void {
       rotation: 0,
       reflected: false,
     };
-    state.leatherPatchAnimationStart = Date.now();
     state.screen = 'placement';
   } else {
     // Patch already collected, move to next
@@ -759,12 +775,18 @@ function checkPlacementAnimation(): void {
     // Animation complete
     state.placementAnimation = null;
 
-    // Process pending leather patches or transition to game
-    if (state.pendingLeatherPatches.length > 0) {
+    // If this was a leather patch animation, clear it and process next
+    if (state.placingLeatherPatch) {
+      state.placingLeatherPatch = null;
       processNextLeatherPatch();
     } else {
-      state.screen = 'game';
-      checkGameEnd();
+      // Regular patch animation finished - process pending leather patches or transition to game
+      if (state.pendingLeatherPatches.length > 0) {
+        processNextLeatherPatch();
+      } else {
+        state.screen = 'game';
+        checkGameEnd();
+      }
     }
   }
 }
