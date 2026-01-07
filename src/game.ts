@@ -299,7 +299,6 @@ export function find7x7FilledArea(board: (number | null)[][]): { x: number; y: n
 }
 
 export function check7x7Bonus(state: GameState, playerIndex: 0 | 1): boolean {
-  // If bonus already claimed globally, return false
   if (state.bonus7x7Claimed) {
     return false;
   }

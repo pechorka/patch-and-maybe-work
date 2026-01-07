@@ -78,19 +78,16 @@ export function editName(playerIdx: 0 | 1): void {
     state.playerNames[playerIdx] = newName.trim().slice(0, 20);
     savePlayerNames(state.playerNames);
   }
-  render(state);
 }
 
 export function selectFirstPlayer(playerIdx: 0 | 1): void {
   state.firstPlayerIndex = playerIdx;
   saveFirstPlayerPref(playerIdx);
-  render(state);
 }
 
 export function startGame(): void {
   state.gameState = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 // Admin test screen actions
@@ -100,42 +97,35 @@ export function getIsAdminMode(): boolean {
 
 export function openAdminTestScreen(): void {
   state.screen = 'adminTest';
-  render(state);
 }
 
 export function backToSetup(): void {
   state.screen = 'setup';
-  render(state);
 }
 
 export function loadTestGame1Patch(): void {
   state.gameState = createTestGameWith1Patch(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 export function loadTestGame2Patches(): void {
   state.gameState = createTestGameWith2Patches(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 export function loadTestGameNearIncome(): void {
   state.gameState = createTestGameNearIncome(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 export function loadTestGameInfiniteMoney(): void {
   state.gameState = createTestGameInfiniteMoney(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 export function loadTestGameNearLeatherPatch(): void {
   state.gameState = createTestGameNearLeatherPatch(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
-  render(state);
 }
 
 // Game screen actions
@@ -167,7 +157,6 @@ export function selectPatch(patchIndex: number, screenX: number, screenY: number
       };
     }
   }
-  render(state);
 }
 
 export function skip(): void {
@@ -181,7 +170,6 @@ export function skip(): void {
       checkGameEnd();
     }
   }
-  render(state);
 }
 
 export function openMapView(): void {
@@ -190,7 +178,6 @@ export function openMapView(): void {
     clearTappedTrackPosition();
     state.screen = 'mapView';
   }
-  render(state);
 }
 
 // Placement screen actions
@@ -203,14 +190,12 @@ export function cancelPlacement(): void {
       state.placementState.y = Math.floor(state.gameState.boardSize / 2);
     }
     state.dragState = null;
-    render(state);
     return;
   }
 
   state.placementState = null;
   state.dragState = null;
   state.screen = 'game';
-  render(state);
 }
 
 export function confirmPlacement(): void {
@@ -262,14 +247,12 @@ export function confirmPlacement(): void {
       }
     }
   }
-  render(state);
 }
 
 export function moveLeft(): void {
   if (state.placementState) {
     state.placementState.x = Math.max(-getMaxNegativeX(), state.placementState.x - 1);
   }
-  render(state);
 }
 
 export function moveRight(): void {
@@ -277,14 +260,12 @@ export function moveRight(): void {
     const maxX = state.gameState.boardSize - 1;
     state.placementState.x = Math.min(maxX, state.placementState.x + 1);
   }
-  render(state);
 }
 
 export function moveUp(): void {
   if (state.placementState) {
     state.placementState.y = Math.max(-getMaxNegativeY(), state.placementState.y - 1);
   }
-  render(state);
 }
 
 export function moveDown(): void {
@@ -292,21 +273,18 @@ export function moveDown(): void {
     const maxY = state.gameState.boardSize - 1;
     state.placementState.y = Math.min(maxY, state.placementState.y + 1);
   }
-  render(state);
 }
 
 export function rotate(): void {
   if (state.placementState) {
     state.placementState.rotation = (state.placementState.rotation + 1) % 4;
   }
-  render(state);
 }
 
 export function reflect(): void {
   if (state.placementState) {
     state.placementState.reflected = !state.placementState.reflected;
   }
-  render(state);
 }
 
 // Game end screen actions
@@ -316,33 +294,28 @@ export function playAgain(): void {
   state.pendingLeatherPatches = [];
   state.placingLeatherPatch = null;
   state.screen = 'setup';
-  render(state);
 }
 
 export function previewBoard(playerIdx: number): void {
   state.previewPlayerIdx = playerIdx;
   state.screen = 'boardPreview';
-  render(state);
 }
 
 export function backToGameEnd(): void {
   state.previewPlayerIdx = null;
   state.screen = 'gameEnd';
-  render(state);
 }
 
 // Opponent board preview (tap and hold)
 export function startOpponentBoardPreview(): void {
   if (state.screen === 'game') {
     state.previewingOpponentBoard = true;
-    render(state);
   }
 }
 
 export function stopOpponentBoardPreview(): void {
   if (state.previewingOpponentBoard) {
     state.previewingOpponentBoard = false;
-    render(state);
   }
 }
 
@@ -350,17 +323,14 @@ export function stopOpponentBoardPreview(): void {
 export function closeMapView(): void {
   clearTappedTrackPosition();
   state.screen = 'game';
-  render(state);
 }
 
 export function trackPosition(pos: number): void {
   setTappedTrackPosition(pos);
-  render(state);
 }
 
 export function trackPositionRelease(): void {
   clearTappedTrackPosition();
-  render(state);
 }
 
 // Drag and drop functions for patch placement
@@ -400,7 +370,6 @@ export function startDrag(screenX: number, screenY: number): void {
     startCellX: state.placementState.x,
     startCellY: state.placementState.y,
   };
-  render(state);
 }
 
 export function spawnPatchAt(screenX: number, screenY: number): void {
@@ -438,8 +407,6 @@ export function updateDrag(screenX: number, screenY: number): void {
   // No clamping - allow off-board positioning
   state.placementState.x = state.dragState.startCellX + deltaCellsX;
   state.placementState.y = state.dragState.startCellY + deltaCellsY;
-
-  render(state);
 }
 
 export function endDrag(): void {
@@ -470,7 +437,6 @@ export function endDrag(): void {
         state.placementState.x = Math.floor(boardCells / 2);
         state.placementState.y = Math.floor(boardCells / 2);
         state.dragState = null;
-        render(state);
         return;
       }
       cancelPlacement();
@@ -480,7 +446,6 @@ export function endDrag(): void {
 
   // Patch is at least partially on board - just end drag (don't cancel even if invalid)
   state.dragState = null;
-  render(state);
 }
 
 function getCurrentPlacementPatch(): Patch | undefined {
