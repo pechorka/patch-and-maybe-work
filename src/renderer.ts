@@ -1,7 +1,7 @@
 import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
-  editName, startGame, selectFirstPlayer,
+  editName, startGame, selectFirstPlayer, toggleAutoSkip,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
@@ -132,6 +132,11 @@ export function render(state: AppState): void {
       renderBoardPreview(state);
       break;
   }
+
+  // Render toast overlay (on top of everything)
+  if (state.toast) {
+    renderToast(state.toast.message);
+  }
 }
 
 function renderSetupScreen(state: AppState): void {
@@ -202,6 +207,44 @@ function renderSetupScreen(state: AppState): void {
       type: 'standard',
     });
   }
+
+  // Auto-skip toggle
+  const autoSkipY = height * 0.52;
+  const autoSkipCheckboxSize = 30;
+  const autoSkipCheckboxX = centerX - 150;
+  const autoSkipLabelX = autoSkipCheckboxX + autoSkipCheckboxSize + 10;
+
+  // Checkbox
+  if (state.autoSkipEnabled) {
+    ctx.fillStyle = COLORS.panelActive;
+    ctx.fillRect(autoSkipCheckboxX, autoSkipY, autoSkipCheckboxSize, autoSkipCheckboxSize);
+    // Checkmark
+    ctx.strokeStyle = COLORS.text;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(autoSkipCheckboxX + 6, autoSkipY + 15);
+    ctx.lineTo(autoSkipCheckboxX + 12, autoSkipY + 22);
+    ctx.lineTo(autoSkipCheckboxX + 24, autoSkipY + 8);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = COLORS.panel;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(autoSkipCheckboxX, autoSkipY, autoSkipCheckboxSize, autoSkipCheckboxSize);
+  }
+
+  // Label
+  ctx.fillStyle = COLORS.text;
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText("Auto-skip when can't buy", autoSkipLabelX, autoSkipY + autoSkipCheckboxSize / 2 + 5);
+  ctx.textAlign = 'center';
+
+  buttons.push({
+    x: autoSkipCheckboxX, y: autoSkipY, width: 300, height: autoSkipCheckboxSize,
+    label: 'Toggle Auto-skip',
+    action: toggleAutoSkip,
+    type: 'standard',
+  });
 
   // Start button
   const startBtnWidth = 200;
@@ -1099,5 +1142,42 @@ function renderPatchInRing(
   ctx.font = '8px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`${patch.buttonCost}/${patch.timeCost}`, centerX, startY + patchHeight * cellSize + 8);
+}
+
+function renderToast(message: string): void {
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // Measure text to size the background
+  ctx.font = 'bold 18px sans-serif';
+  const textMetrics = ctx.measureText(message);
+  const textWidth = textMetrics.width;
+  const padding = 20;
+  const boxWidth = textWidth + padding * 2;
+  const boxHeight = 50;
+
+  // Semi-transparent dark background with rounded corners
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  const boxX = centerX - boxWidth / 2;
+  const boxY = centerY - boxHeight / 2;
+  const radius = 10;
+
+  ctx.beginPath();
+  ctx.moveTo(boxX + radius, boxY);
+  ctx.lineTo(boxX + boxWidth - radius, boxY);
+  ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + radius);
+  ctx.lineTo(boxX + boxWidth, boxY + boxHeight - radius);
+  ctx.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - radius, boxY + boxHeight);
+  ctx.lineTo(boxX + radius, boxY + boxHeight);
+  ctx.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - radius);
+  ctx.lineTo(boxX, boxY + radius);
+  ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
+  ctx.closePath();
+  ctx.fill();
+
+  // White text
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.fillText(message, centerX, centerY + 6);
 }
 

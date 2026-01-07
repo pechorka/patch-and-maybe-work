@@ -87,6 +87,13 @@ export interface AppState {
   placingLeatherPatch: Patch | null; // Current leather patch being placed
   previewingOpponentBoard: boolean;  // True when holding opponent's panel to preview their board
   confirmingSkip: boolean;  // True when user tapped skip once and needs to confirm
+  autoSkipEnabled: boolean;  // True when auto-skip is enabled for players who can't afford any patches
+  toast: Toast | null;  // Current toast notification to display
+}
+
+export interface Toast {
+  message: string;
+  createdAt: number;  // timestamp for auto-dismiss
 }
 
 export type ButtonType = 'standard' | 'patch' | 'track-position' | 'player-panel';

@@ -1,9 +1,9 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver } from './game';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome, createTestGameOver, canAffordAnyPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
-import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
+import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref } from './storage';
 
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
@@ -11,7 +11,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: ability to customize colors (patch colors, player colors)
 // TODO: persist player scores
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
-// TODO: autoskip if player can't buy anything
 // TODO: label to player order selection
 // TODO: move confirm and cancel button to the bottom (all button at the bottom)
 // TODO: make interface so player one is on the top and player 2 is at the bottom
@@ -53,7 +52,25 @@ const state: AppState = {
   placingLeatherPatch: null,
   previewingOpponentBoard: false,
   confirmingSkip: false,
+  autoSkipEnabled: loadAutoSkipPref(),
+  toast: null,
 };
+
+// Toast functions
+const TOAST_DURATION_MS = 2000;
+
+export function showToast(message: string): void {
+  state.toast = {
+    message,
+    createdAt: Date.now(),
+  };
+}
+
+function clearToastIfExpired(): void {
+  if (state.toast && Date.now() - state.toast.createdAt > TOAST_DURATION_MS) {
+    state.toast = null;
+  }
+}
 
 // Setup screen actions
 export function editName(playerIdx: 0 | 1): void {
@@ -70,9 +87,15 @@ export function selectFirstPlayer(playerIdx: 0 | 1): void {
   saveFirstPlayerPref(playerIdx);
 }
 
+export function toggleAutoSkip(): void {
+  state.autoSkipEnabled = !state.autoSkipEnabled;
+  saveAutoSkipPref(state.autoSkipEnabled);
+}
+
 export function startGame(): void {
   state.gameState = createGameState(state.selectedBoardSize, state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
+  checkGameEnd();  // Handle auto-skip if player can't afford anything
 }
 
 // Admin test screen actions
@@ -521,12 +544,46 @@ function processNextLeatherPatch(): void {
 }
 
 function checkGameEnd(): void {
+  if (!state.gameState) return;
+
+  if (isGameOver(state.gameState)) {
+    state.screen = 'gameEnd';
+    return;
+  }
+
+  // Auto-skip if enabled and current player can't afford any patches
+  let autoSkipCount = 0;
+  while (state.autoSkipEnabled &&
+         state.gameState &&
+         !isGameOver(state.gameState) &&
+         !canAffordAnyPatch(state.gameState)) {
+    const result = skipAhead(state.gameState);
+    autoSkipCount++;
+
+    if (result.crossedLeatherPositions.length > 0) {
+      // Show toast for skips so far, then handle leather patches
+      if (autoSkipCount > 0) {
+        showToast(`Auto-skipped ${autoSkipCount} turn${autoSkipCount > 1 ? 's' : ''}`);
+      }
+      state.pendingLeatherPatches = result.crossedLeatherPositions;
+      processNextLeatherPatch();
+      return;  // Will continue auto-skipping after leather patch placement via checkGameEnd()
+    }
+  }
+
+  // Show toast if we auto-skipped any turns
+  if (autoSkipCount > 0) {
+    showToast(`Auto-skipped ${autoSkipCount} turn${autoSkipCount > 1 ? 's' : ''}`);
+  }
+
+  // Check for game end after auto-skips
   if (state.gameState && isGameOver(state.gameState)) {
     state.screen = 'gameEnd';
   }
 }
 
 function gameLoop(): void {
+  clearToastIfExpired();
   render(state);
   requestAnimationFrame(gameLoop);
 }

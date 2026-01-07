@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'patchwork_player_names';
 const FIRST_PLAYER_KEY = 'patchwork_first_player';
+const AUTO_SKIP_KEY = 'patchwork_auto_skip';
 
 export function loadPlayerNames(): [string, string] {
   try {
@@ -39,5 +40,23 @@ export function saveFirstPlayerPref(playerIdx: 0 | 1): void {
     localStorage.setItem(FIRST_PLAYER_KEY, String(playerIdx));
   } catch (e) {
     console.error('Failed to save first player preference to localStorage:', e);
+  }
+}
+
+export function loadAutoSkipPref(): boolean {
+  try {
+    const stored = localStorage.getItem(AUTO_SKIP_KEY);
+    return stored === 'true';
+  } catch (e) {
+    console.error('Failed to load auto-skip preference from localStorage:', e);
+  }
+  return false;
+}
+
+export function saveAutoSkipPref(enabled: boolean): void {
+  try {
+    localStorage.setItem(AUTO_SKIP_KEY, String(enabled));
+  } catch (e) {
+    console.error('Failed to save auto-skip preference to localStorage:', e);
   }
 }

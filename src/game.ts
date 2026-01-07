@@ -133,6 +133,12 @@ export function canAfford(state: GameState, patchIndex: number): boolean {
   return player.buttons >= patch.buttonCost;
 }
 
+export function canAffordAnyPatch(state: GameState): boolean {
+  const patches = getAvailablePatches(state);
+  const player = getCurrentPlayer(state);
+  return patches.some(patch => player.buttons >= patch.buttonCost);
+}
+
 export function canPlacePatch(
   board: (number | null)[][],
   shape: Shape,
