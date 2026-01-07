@@ -68,17 +68,17 @@ function movePlayer(state: GameState, playerIndex: 0 | 1, spaces: number): MoveR
   const oldPosition = player.position;
   const newPosition = Math.min(oldPosition + spaces, state.timeTrackLength);
 
-  // Check for income checkpoints crossed (markers are "between" cells, triggered when passing over)
+  // Check for income checkpoints crossed (triggered when landing on or passing through)
   const checkpointsCrossed = state.incomePositions.filter(
-    pos => oldPosition <= pos && newPosition > pos
+    pos => oldPosition < pos && newPosition >= pos
   );
 
   // Collect income for each checkpoint
   player.buttons += checkpointsCrossed.length * player.income;
 
-  // Check for leather patches crossed (uncollected only, markers are "between" cells)
+  // Check for leather patches crossed (uncollected only)
   const crossedLeatherPositions = state.leatherPatches
-    .filter(lp => !lp.collected && oldPosition <= lp.position && newPosition > lp.position)
+    .filter(lp => !lp.collected && oldPosition < lp.position && newPosition >= lp.position)
     .map(lp => lp.position);
 
   // Update position
@@ -431,6 +431,21 @@ export function createTestGameNearLeatherPatch(playerNames: [string, string], fi
 
   // Put opponent ahead so current player stays current
   opponent.position = firstLeatherPos + 5;
+
+  return state;
+}
+
+export function createTestGameNearLastIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
+  const state = createGameState(9, playerNames, firstPlayerIndex);
+  const currentPlayer = state.players[firstPlayerIndex];
+  const opponent = state.players[firstPlayerIndex === 0 ? 1 : 0];
+
+  // Position current player just before last income checkpoint (position 53)
+  currentPlayer.position = 52;
+  currentPlayer.income = 5; // Give them income to verify it's collected
+
+  // Put opponent behind so current player goes first
+  opponent.position = 50;
 
   return state;
 }

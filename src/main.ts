@@ -1,20 +1,10 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch } from './game';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch, createTestGameNearLastIncome } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
 import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref } from './storage';
 
-// TODO: potential bug with last payout
-//   - Income + leather triggers look “between-cells” and shifted: incomePositions includes 53 (src/
-//    game.ts:63) but movePlayer() only triggers on newPosition > pos (src/game.ts:72), so the last
-//    income can never pay out; same applies to leather collection. Decide “on space” vs “between
-//    spaces” and make src/game.ts:63-85 + marker drawing (src/renderer.ts:785-808) consistent.
-// TODO: bug with repeats when < 3 figures left
-// TODO: better rotation
-//  Keep patch centered when rotating: rotate() only changes rotation (src/main.ts:225-229), so
-//  pieces “jump” because the anchor is top-left; adjust x/y to preserve center/pivot for smoother
-//  placement.
 // TODO: patch info during placement
 //  Add a lightweight “patch info” panel during placement (cells, cost/time/income, and projected
 //  score delta) so decisions don’t require mental math.
@@ -125,6 +115,11 @@ export function loadTestGameInfiniteMoney(): void {
 
 export function loadTestGameNearLeatherPatch(): void {
   state.gameState = createTestGameNearLeatherPatch(state.playerNames, state.firstPlayerIndex);
+  state.screen = 'game';
+}
+
+export function loadTestGameNearLastIncome(): void {
+  state.gameState = createTestGameNearLastIncome(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
 }
 

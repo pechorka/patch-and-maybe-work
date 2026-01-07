@@ -9,6 +9,7 @@ import {
   getIsAdminMode, openAdminTestScreen, backToSetup,
   loadTestGame1Patch, loadTestGame2Patches,
   loadTestGameNearIncome, loadTestGameInfiniteMoney, loadTestGameNearLeatherPatch,
+  loadTestGameNearLastIncome,
 } from './main';
 import { getTransformedShape } from './shape-utils';
 import { COLORS, getPatchColor, adjustColorOpacity, getPlayerColor } from './colors';
@@ -264,6 +265,7 @@ function renderAdminTestScreen(_state: AppState): void {
     { label: '1 Patch in Shop', action: loadTestGame1Patch },
     { label: '2 Patches in Shop', action: loadTestGame2Patches },
     { label: 'Near Income Checkpoint', action: loadTestGameNearIncome },
+    { label: 'Near Last Income (53)', action: loadTestGameNearLastIncome },
     { label: 'Infinite Money', action: loadTestGameInfiniteMoney },
     { label: 'Near Leather Patch', action: loadTestGameNearLeatherPatch },
   ];
