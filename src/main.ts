@@ -3,7 +3,7 @@ import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvail
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
-import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref } from './storage';
+import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerPref, loadAutoSkipPref, saveAutoSkipPref, loadFaceToFaceModePref, saveFaceToFaceModePref } from './storage';
 
 // TODO:  - Add non-color cues (patterns/overlays/edge styles) for patches and player identity to reduce
 //    reliance on color alone, especially on small screens.
@@ -13,8 +13,6 @@ import { loadPlayerNames, savePlayerNames, loadFirstPlayerPref, saveFirstPlayerP
 // TODO: draw on game over graphs with stats (button count, cells taken, income over time)
 // TODO: label to player order selection
 // TODO: move confirm and cancel button to the bottom (all button at the bottom)
-// TODO: make interface so player one is on the top and player 2 is at the bottom
-// So users can place device between each other and sit acros each other
 // TODO: show map button on placement screen
 // TODO: add animation for leather patch arrival
 // TODO: better leather patch visibility
@@ -51,6 +49,7 @@ const state: AppState = {
   confirmingSkip: false,
   autoSkipEnabled: loadAutoSkipPref(),
   toasts: [],
+  faceToFaceMode: loadFaceToFaceModePref(),
 };
 
 // Toast functions
@@ -88,6 +87,11 @@ export function selectFirstPlayer(playerIdx: 0 | 1): void {
 export function toggleAutoSkip(): void {
   state.autoSkipEnabled = !state.autoSkipEnabled;
   saveAutoSkipPref(state.autoSkipEnabled);
+}
+
+export function toggleFaceToFaceMode(): void {
+  state.faceToFaceMode = !state.faceToFaceMode;
+  saveFaceToFaceModePref(state.faceToFaceMode);
 }
 
 export function startGame(): void {

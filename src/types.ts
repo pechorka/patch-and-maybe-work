@@ -89,6 +89,7 @@ export interface AppState {
   confirmingSkip: boolean;  // True when user tapped skip once and needs to confirm
   autoSkipEnabled: boolean;  // True when auto-skip is enabled for players who can't afford any patches
   toasts: Toast[];  // Active toast notifications
+  faceToFaceMode: boolean;  // True when screen rotates 180° on player change for face-to-face play
 }
 
 export interface Toast {

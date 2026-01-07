@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'patchwork_player_names';
 const FIRST_PLAYER_KEY = 'patchwork_first_player';
 const AUTO_SKIP_KEY = 'patchwork_auto_skip';
+const FACE_TO_FACE_KEY = 'patchwork_face_to_face';
 
 export function loadPlayerNames(): [string, string] {
   try {
@@ -58,5 +59,23 @@ export function saveAutoSkipPref(enabled: boolean): void {
     localStorage.setItem(AUTO_SKIP_KEY, String(enabled));
   } catch (e) {
     console.error('Failed to save auto-skip preference to localStorage:', e);
+  }
+}
+
+export function loadFaceToFaceModePref(): boolean {
+  try {
+    const stored = localStorage.getItem(FACE_TO_FACE_KEY);
+    return stored === 'true';
+  } catch (e) {
+    console.error('Failed to load face-to-face preference from localStorage:', e);
+  }
+  return false;
+}
+
+export function saveFaceToFaceModePref(enabled: boolean): void {
+  try {
+    localStorage.setItem(FACE_TO_FACE_KEY, String(enabled));
+  } catch (e) {
+    console.error('Failed to save face-to-face preference to localStorage:', e);
   }
 }

@@ -1,7 +1,7 @@
 import type { AppState, Button, GameState, Patch, PlacementState, Player, Shape, Toast } from './types';
 import { calculateScore, canPlacePatch, getAvailablePatches, getCurrentPlayerIndex, getNextIncomeDistance, getOvertakeDistance, getWinner } from './game';
 import {
-  editName, startGame, selectFirstPlayer, toggleAutoSkip,
+  editName, startGame, selectFirstPlayer, toggleAutoSkip, toggleFaceToFaceMode,
   skip, openMapView,
   cancelPlacement, confirmPlacement, rotate, reflect,
   playAgain, previewBoard, backToGameEnd,
@@ -103,37 +103,81 @@ function resize(): void {
   ctx.scale(dpr, dpr);
 }
 
+function ctxTransaction(body: () => void): void {
+  ctx.save();
+  body();
+  ctx.restore();
+}
+
+// Track if current render is rotated (for input coordinate transformation)
+let isScreenRotated = false;
+
+export function getIsScreenRotated(): boolean {
+  return isScreenRotated;
+}
+
+export function getCanvasDimensions(): { width: number; height: number } {
+  return { width, height };
+}
+
 export function render(state: AppState): void {
   buttons = [];
 
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, width, height);
 
+  // Determine if screen should be rotated (face-to-face mode + player 2's turn + game/placement screen)
+  const shouldRotate = state.faceToFaceMode &&
+    (state.screen === 'game' || state.screen === 'placement') &&
+    state.gameState !== null &&
+    getCurrentPlayerIndex(state.gameState) === 1;
+
+  isScreenRotated = shouldRotate;
+
+  // Get the appropriate render function for the current screen
+  let renderScreen: () => void;
   switch (state.screen) {
     case 'setup':
-      renderSetupScreen(state);
+      renderScreen = () => renderSetupScreen(state);
       break;
     case 'adminTest':
-      renderAdminTestScreen(state);
+      renderScreen = () => renderAdminTestScreen(state);
       break;
     case 'game':
-      renderGameScreen(state);
+      renderScreen = () => renderGameScreen(state);
       break;
     case 'placement':
-      renderPlacementScreen(state);
+      renderScreen = () => renderPlacementScreen(state);
       break;
     case 'gameEnd':
-      renderGameEndScreen(state);
+      renderScreen = () => renderGameEndScreen(state);
       break;
     case 'mapView':
-      renderMapViewScreen(state);
+      renderScreen = () => renderMapViewScreen(state);
       break;
     case 'boardPreview':
-      renderBoardPreview(state);
+      renderScreen = () => renderBoardPreview(state);
       break;
+    default:
+      renderScreen = () => {};
   }
 
-  // Render toast overlay (on top of everything)
+  // Apply rotation if needed
+  if (shouldRotate) {
+    const originalRender = renderScreen;
+    renderScreen = () => {
+      ctxTransaction(() => {
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(Math.PI);
+        ctx.translate(-width / 2, -height / 2);
+        originalRender();
+      });
+    };
+  }
+
+  renderScreen();
+
+  // Render toast overlay (on top of everything, not rotated)
   if (state.toasts.length > 0) {
     renderToasts(state.toasts);
   }
@@ -212,40 +256,74 @@ function renderSetupScreen(state: AppState): void {
   }
 
   // Auto-skip toggle
-  const autoSkipY = height * 0.52;
-  const autoSkipCheckboxSize = 30;
-  const autoSkipCheckboxX = centerX - 150;
-  const autoSkipLabelX = autoSkipCheckboxX + autoSkipCheckboxSize + 10;
+  const autoSkipY = height * 0.50;
+  const checkboxSize = 30;
+  const checkboxX = centerX - 150;
+  const labelX = checkboxX + checkboxSize + 10;
 
   // Checkbox
   if (state.autoSkipEnabled) {
     ctx.fillStyle = COLORS.panelActive;
-    ctx.fillRect(autoSkipCheckboxX, autoSkipY, autoSkipCheckboxSize, autoSkipCheckboxSize);
+    ctx.fillRect(checkboxX, autoSkipY, checkboxSize, checkboxSize);
     // Checkmark
     ctx.strokeStyle = COLORS.text;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(autoSkipCheckboxX + 6, autoSkipY + 15);
-    ctx.lineTo(autoSkipCheckboxX + 12, autoSkipY + 22);
-    ctx.lineTo(autoSkipCheckboxX + 24, autoSkipY + 8);
+    ctx.moveTo(checkboxX + 6, autoSkipY + 15);
+    ctx.lineTo(checkboxX + 12, autoSkipY + 22);
+    ctx.lineTo(checkboxX + 24, autoSkipY + 8);
     ctx.stroke();
   } else {
     ctx.strokeStyle = COLORS.panel;
     ctx.lineWidth = 2;
-    ctx.strokeRect(autoSkipCheckboxX, autoSkipY, autoSkipCheckboxSize, autoSkipCheckboxSize);
+    ctx.strokeRect(checkboxX, autoSkipY, checkboxSize, checkboxSize);
   }
 
   // Label
   ctx.fillStyle = COLORS.text;
   ctx.font = '16px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText("Auto-skip when can't buy", autoSkipLabelX, autoSkipY + autoSkipCheckboxSize / 2 + 5);
+  ctx.fillText("Auto-skip when can't buy", labelX, autoSkipY + checkboxSize / 2 + 5);
+
+  buttons.push({
+    x: checkboxX, y: autoSkipY, width: 300, height: checkboxSize,
+    label: 'Toggle Auto-skip',
+    action: toggleAutoSkip,
+    type: 'standard',
+  });
+
+  // Face-to-face mode toggle
+  const faceToFaceY = height * 0.56;
+
+  // Checkbox
+  if (state.faceToFaceMode) {
+    ctx.fillStyle = COLORS.panelActive;
+    ctx.fillRect(checkboxX, faceToFaceY, checkboxSize, checkboxSize);
+    // Checkmark
+    ctx.strokeStyle = COLORS.text;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(checkboxX + 6, faceToFaceY + 15);
+    ctx.lineTo(checkboxX + 12, faceToFaceY + 22);
+    ctx.lineTo(checkboxX + 24, faceToFaceY + 8);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = COLORS.panel;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(checkboxX, faceToFaceY, checkboxSize, checkboxSize);
+  }
+
+  // Label
+  ctx.fillStyle = COLORS.text;
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Face-to-face mode', labelX, faceToFaceY + checkboxSize / 2 + 5);
   ctx.textAlign = 'center';
 
   buttons.push({
-    x: autoSkipCheckboxX, y: autoSkipY, width: 300, height: autoSkipCheckboxSize,
-    label: 'Toggle Auto-skip',
-    action: toggleAutoSkip,
+    x: checkboxX, y: faceToFaceY, width: 300, height: checkboxSize,
+    label: 'Toggle Face-to-face',
+    action: toggleFaceToFaceMode,
     type: 'standard',
   });
 

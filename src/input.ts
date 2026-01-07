@@ -1,6 +1,17 @@
 import type { Button } from './types';
-import { buttons } from './renderer';
+import { buttons, getIsScreenRotated, getCanvasDimensions } from './renderer';
 import { endDrag, getAppState, isDragging, isInsidePlacedPatch, selectPatch, startDrag, startOpponentBoardPreview, stopOpponentBoardPreview, trackPositionRelease, updateDrag } from './main';
+
+/**
+ * Transform coordinates when screen is rotated 180°.
+ */
+function transformCoords(x: number, y: number): { x: number; y: number } {
+  if (getIsScreenRotated()) {
+    const { width, height } = getCanvasDimensions();
+    return { x: width - x, y: height - y };
+  }
+  return { x, y };
+}
 
 /**
  * Extract pointer coordinates from mouse or touch event.
@@ -36,43 +47,46 @@ export function initInput(canvas: HTMLCanvasElement): void {
 }
 
 function handleClick(e: MouseEvent): void {
-  checkHit(e.clientX, e.clientY);
+  const { x, y } = transformCoords(e.clientX, e.clientY);
+  checkHit(x, y);
 }
 
 function handleTouchEnd(e: TouchEvent): void {
   e.preventDefault();
   const coords = getPointerCoords(e);
   if (coords) {
-    checkHit(coords.x, coords.y);
+    const { x, y } = transformCoords(coords.x, coords.y);
+    checkHit(x, y);
   }
 }
 
 function handlePointerDown(e: MouseEvent | TouchEvent): void {
-  const coords = getPointerCoords(e);
-  if (!coords) return;
+  const rawCoords = getPointerCoords(e);
+  if (!rawCoords) return;
 
+  const { x, y } = transformCoords(rawCoords.x, rawCoords.y);
   const state = getAppState();
 
   // On game screen, check for player panel and patch button presses
   if (state.screen === 'game') {
     // Check player panel first (tap and hold to preview opponent's board)
-    if (checkPlayerPanelHit(coords.x, coords.y)) {
+    if (checkPlayerPanelHit(x, y)) {
       return;
     }
-    if (checkPatchButtonHit(coords.x, coords.y)) {
+    if (checkPatchButtonHit(x, y)) {
       return;
     }
   }
 
   // On placement screen, only start drag if clicking on the patch
   if (state.screen === 'placement') {
-    if (isInsidePlacedPatch(coords.x, coords.y)) {
-      startDrag(coords.x, coords.y);
+    if (isInsidePlacedPatch(x, y)) {
+      startDrag(x, y);
     }
     return;
   }
 
-  checkTrackPositionHit(coords.x, coords.y);
+  checkTrackPositionHit(x, y);
 }
 
 function handleRelease(): void {
@@ -140,7 +154,8 @@ function isInside(x: number, y: number, button: Button): boolean {
 
 function handlePointerMove(e: MouseEvent): void {
   if (isDragging()) {
-    updateDrag(e.clientX, e.clientY);
+    const { x, y } = transformCoords(e.clientX, e.clientY);
+    updateDrag(x, y);
   }
 }
 
@@ -148,6 +163,7 @@ function handleTouchMove(e: TouchEvent): void {
   if (isDragging() && e.touches.length > 0) {
     e.preventDefault(); // Prevent scrolling during drag
     const touch = e.touches[0];
-    updateDrag(touch.clientX, touch.clientY);
+    const { x, y } = transformCoords(touch.clientX, touch.clientY);
+    updateDrag(x, y);
   }
 }
