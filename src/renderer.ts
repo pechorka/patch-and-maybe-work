@@ -7,7 +7,7 @@ import {
   playAgain, previewBoard, backToGameEnd,
   closeMapView, trackPosition,
   getIsAdminMode, openAdminTestScreen, backToSetup,
-  loadTestGame1Patch, loadTestGame2Patches, loadTestGameNear7x7,
+  loadTestGame1Patch, loadTestGame2Patches,
   loadTestGameNearIncome, loadTestGameInfiniteMoney, loadTestGameNearLeatherPatch,
 } from './main';
 import { getTransformedShape } from './shape-utils';
@@ -263,7 +263,6 @@ function renderAdminTestScreen(_state: AppState): void {
   const testScenarios = [
     { label: '1 Patch in Shop', action: loadTestGame1Patch },
     { label: '2 Patches in Shop', action: loadTestGame2Patches },
-    { label: 'Near 7x7 Bonus', action: loadTestGameNear7x7 },
     { label: 'Near Income Checkpoint', action: loadTestGameNearIncome },
     { label: 'Infinite Money', action: loadTestGameInfiniteMoney },
     { label: 'Near Leather Patch', action: loadTestGameNearLeatherPatch },

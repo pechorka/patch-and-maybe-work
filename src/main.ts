@@ -1,5 +1,5 @@
 import type { AppState, Patch, Shape } from './types';
-import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNear7x7, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch } from './game';
+import { buyPatch, check7x7Bonus, collectLeatherPatch, createGameState, getAvailablePatches, getCurrentPlayerIndex, isGameOver, placeLeatherPatch, skipAhead, createTestGameWith1Patch, createTestGameWith2Patches, createTestGameNearIncome, createTestGameInfiniteMoney, createTestGameNearLeatherPatch } from './game';
 import { initInput } from './input';
 import { getTransformedShape } from './shape-utils';
 import { centerShapeOnCell, clearTappedTrackPosition, getPlacementBoardLayout, initRenderer, render, screenToCellCoords, setTappedTrackPosition } from './renderer';
@@ -116,12 +116,6 @@ export function loadTestGame1Patch(): void {
 
 export function loadTestGame2Patches(): void {
   state.gameState = createTestGameWith2Patches(state.playerNames, state.firstPlayerIndex);
-  state.screen = 'game';
-  render(state);
-}
-
-export function loadTestGameNear7x7(): void {
-  state.gameState = createTestGameNear7x7(state.playerNames, state.firstPlayerIndex);
   state.screen = 'game';
   render(state);
 }

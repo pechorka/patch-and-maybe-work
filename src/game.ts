@@ -390,33 +390,6 @@ export function createTestGameWith2Patches(playerNames: [string, string], firstP
   return state;
 }
 
-export function createTestGameNear7x7(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
-  const state = createGameState(9, playerNames, firstPlayerIndex);
-  const player = state.players[firstPlayerIndex];
-
-  // Fill almost a 7x7 area (47 cells filled, leaving a 2-cell gap)
-  // Fill columns 0-5 completely (rows 0-6), then column 6 rows 0-4
-  // This leaves (5,6) and (6,6) empty - a 2-cell vertical gap that can be filled with a [[1],[1]] patch
-
-  // Fill columns 0-5, rows 0-6 (42 cells)
-  for (let y = 0; y < 7; y++) {
-    for (let x = 0; x < 6; x++) {
-      player.board[y][x] = 999; // Use a special ID for manually filled cells
-    }
-  }
-
-  // Fill column 6, rows 0-4 (5 more cells, total 47)
-  for (let y = 0; y < 5; y++) {
-    player.board[y][6] = 999;
-  }
-
-  // Leave (5,6) and (6,6) empty for a 1x2 patch
-  // Give player lots of buttons to afford any patch
-  player.buttons = 100;
-
-  return state;
-}
-
 export function createTestGameNearIncome(playerNames: [string, string], firstPlayerIndex: 0 | 1 = 0): GameState {
   const state = createGameState(9, playerNames, firstPlayerIndex);
   const currentPlayer = state.players[firstPlayerIndex];
